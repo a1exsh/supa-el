@@ -71,13 +71,21 @@
       (put-text-property   (+ meta 30) (+ meta 31) 'display (list supa-tiles-image '(slice 64 0 16 16)))
       (put-text-property   (+ meta 31) (+ meta 96) 'invisible t))))
 
+(defun supa-is-editable-tile (&optional pos)
+  (let* ((p (1- (or pos (point))))
+         (y (/ p 60))
+         (x (% p 60)))
+    (and (< 0 y 23)
+         (< 0 x 59))))
+
 (defun supa-set-tile-at-point (tile-n)
   (interactive)
-  (let ((inhibit-read-only 't))
-    (delete-char 1)
-    (insert tile-n)
-    (backward-char)
-    (supa-put-text-prop-tile (point) tile-n)))
+  (when (supa-is-editable-tile)
+    (let ((inhibit-read-only 't))
+      (delete-char 1)
+      (insert tile-n)
+      (backward-char)
+      (supa-put-text-prop-tile (point) tile-n))))
 
 (defun supa-port-tile-toggled-gravity (tile-n)
   (cond
@@ -90,7 +98,6 @@
    ((= tile-n 15) 11)
    ((= tile-n 16) 12)))
 
-;; TODO: check boundaries
 (defun supa-tile-at-point ()
   (interactive)
   (char-after))
