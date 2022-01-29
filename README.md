@@ -1,9 +1,22 @@
 # Supaplex @ Emacs
 
-1. Find file `LEVELS.DAT`.
+## Installation
+
+TBD
+
+For now, checkout the code to `~/src/supa-el` or edit the tiles location in
+the source, if running from a different directory.
+
+Evaluate the whole file [`supa.el`](supa.el).
+
+## Usage
+
+1. Open your `LEVELS.DAT`.
 2. `M-x supa-mode`.
-3. `M-x supa-edit-level` and enter the level number.
-4. `M-x supa-list-levels` to go back to the levels list.
+
+## License
+
+GNU GPL v3.
 
 Tiles image taken from:
 https://github.com/mokyu/supaplex-level-editor/blob/master/resources/tiles.png
