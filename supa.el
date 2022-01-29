@@ -72,7 +72,8 @@
       (put-text-property   (+ meta 31) (+ meta 96) 'invisible t))))
 
 (defun supa-is-editable-tile (&optional pos)
-  (let* ((p (1- (or pos (point))))
+  (let* ((p (% (1- (or pos (point)))
+               1536))
          (y (/ p 60))
          (x (% p 60)))
     (and (< 0 y 23)
