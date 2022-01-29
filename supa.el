@@ -78,6 +78,10 @@
     (and (< 0 y 23)
          (< 0 x 59))))
 
+(defun supa-tile-at-point ()
+  (interactive)
+  (char-after))
+
 (defun supa-set-tile-at-point (tile-n)
   (interactive)
   (when (supa-is-editable-tile)
@@ -86,6 +90,11 @@
       (insert tile-n)
       (backward-char)
       (supa-put-text-prop-tile (point) tile-n))))
+
+(defun supa-undo (&optional arg)
+  (interactive)
+  (let ((inhibit-read-only 't))
+    (undo arg)))
 
 (defun supa-port-tile-toggled-gravity (tile-n)
   (cond
@@ -97,10 +106,6 @@
    ((= tile-n 14) 10)
    ((= tile-n 15) 11)
    ((= tile-n 16) 12)))
-
-(defun supa-tile-at-point ()
-  (interactive)
-  (char-after))
 
 (defun supa-toggle-port-gravity-at-point ()
   (interactive)
@@ -191,6 +196,8 @@
 (define-key supa-map (kbd "}")   'supa-set-tile-at-point-chip-d)
 
 (define-key supa-map (kbd "G")   'supa-toggle-port-gravity-at-point)
+
+(define-key supa-map [remap undo] 'supa-undo)
 
 (define-derived-mode supa-mode
   fundamental-mode "Supa"
