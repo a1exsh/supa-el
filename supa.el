@@ -197,6 +197,8 @@
 (define-key supa-map (kbd "}")   'supa-set-tile-at-point-chip-d)
 
 (define-key supa-map (kbd "G")   'supa-toggle-port-gravity-at-point)
+(define-key supa-map (kbd "u")   'supa-undo)
+(define-key supa-map (kbd "U")   'supa-undo)
 
 (define-key supa-map [remap undo] 'supa-undo)
 
@@ -232,6 +234,19 @@
 ;;     (insert-char 6))
 ;;   ;
 ;;   )
+
+(defun supa-clear-level ()
+  (interactive)
+  (delete-region 1 (1+ (* 24 60)))
+  (dotimes (x 60)
+    (insert-char 6))
+  (dotimes (y 22)
+    (insert-char 6)
+    (dotimes (x 58)
+      (insert-char 2))
+    (insert-char 6))
+  (dotimes (x 60)
+    (insert-char 6)))
 
 ;; ;; put all available objects in one line
 ;; (with-current-buffer levels-buf
