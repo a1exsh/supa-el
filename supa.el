@@ -16,6 +16,11 @@
              (name (buffer-substring (+ s 1446) (+ s 1469))))
         (put-text-property s e 'display (format "%03d: %s\n" (1+ lvl) name))))))
 
+(defun supa-edit-level-at-point ()
+  (interactive)
+  (supa-edit-level (1+ (/ (1- (point))
+                          1536))))
+
 (defun supa-edit-level (lvl)
   (interactive "nLevel: ")
   (remove-overlays)
@@ -44,10 +49,17 @@
       (put-text-property   (+ meta 30) (+ meta 31) 'display (list supa-tiles-image '(slice 64 0 16 16)))
       (put-text-property   (+ meta 31) (+ meta 96) 'invisible t))))
 
+(defconst supa-map (make-sparse-keymap))
+
+(define-key supa-map (kbd "RET") 'supa-edit-level-at-point)
+(define-key supa-map (kbd "q") 'supa-list-levels)
+
 (define-derived-mode supa-mode
   fundamental-mode "Supa"
   "Major mode for Supaplex LEVELS.DAT file."
-  (supa-list-levels))
+  (read-only-mode)
+  (supa-list-levels)
+  (derived-mode-set-keymap 'supa))
 
 (define-minor-mode supa-level-mode
   "Minor mode for Supaplex level within the LEVELS.DAT file.")
