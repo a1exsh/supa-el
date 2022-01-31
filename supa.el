@@ -15,9 +15,14 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ;;
-(defimage supa-tiles-image
-  ((:type png :file "~/src/supa-el/tiles.png")))
-;; (setq supa-tiles-image (find-image '((:type png :file "~/src/supa-el/tiles.png"))))
+(defvar supa-tiles-image nil)
+(defvar supa-tile-size nil)
+
+(defun supa-set-tiles-scale (n)
+  (interactive "nScale (1-4): ")
+  (setq supa-tile-size (* 16 n))
+  (setq supa-tiles-image
+        (find-image (list (list :type 'png :file (format "~/src/supa-el/tiles_x%d.png" n))))))
 
 (defconst supa-zero-height-newline (propertize "\n" 'face '(:height 0)))
 
@@ -43,7 +48,11 @@
                      (1+ pos)
                      'display
                      (list supa-tiles-image
-                           (list 'slice (* 16 tile-n) 0 16 16))))
+                           (list 'slice
+                                 (* supa-tile-size tile-n)
+                                 0
+                                 supa-tile-size
+                                 supa-tile-size))))
 
 (defun supa-edit-level (lvl)
   (interactive "nLevel: ")
@@ -68,7 +77,7 @@
       (set-text-properties meta        (+ meta 96) nil)
       (put-text-property   meta        (+ meta  7) 'display (format "%03d " lvl))
       (put-text-property   (+ meta 29) (+ meta 30) 'display (format " %03d / %03d " 0 info-cnt))
-      (put-text-property   (+ meta 30) (+ meta 31) 'display (list supa-tiles-image '(slice 64 0 16 16)))
+      (supa-put-text-prop-tile (+ meta 30) 4)
       (put-text-property   (+ meta 31) (+ meta 96) 'invisible t))))
 
 (defun supa-is-editable-tile (&optional pos)
@@ -202,12 +211,22 @@
 
 (define-key supa-map [remap undo] 'supa-undo)
 
+(defun supa-text-scale-adjust-hook ()
+  (supa-set-tiles-scale (or (cond
+                             ((<= text-scale-mode-amount 0) 1)
+                             ((>= text-scale-mode-amount 3) 4))
+                            (1+ text-scale-mode-amount)))
+  (supa-edit-level-at-point))
+
 (define-derived-mode supa-mode
   fundamental-mode "Supa"
   "Major mode for Supaplex LEVELS.DAT file."
   (read-only-mode)
+  (setq truncate-lines 't)
   (supa-list-levels)
-  (derived-mode-set-keymap 'supa))
+  (derived-mode-set-keymap 'supa)
+  (supa-set-tiles-scale 1)
+  (add-hook 'text-scale-mode-hook 'supa-text-scale-adjust-hook))
 
 (define-minor-mode supa-level-mode
   "Minor mode for Supaplex level within the LEVELS.DAT file.")

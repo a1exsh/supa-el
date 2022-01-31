@@ -18,5 +18,7 @@ Evaluate the whole file [`supa.el`](supa.el).
 
 GNU GPL v3.
 
-Tiles image taken from:
+Original tiles image taken from:
 https://github.com/mokyu/supaplex-level-editor/blob/master/resources/tiles.png
+
+Tiles upscaled using: https://www.maxlaumeister.com/pixel-art-upscaler/
