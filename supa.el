@@ -230,50 +230,15 @@
 (define-minor-mode supa-level-mode
   "Minor mode for Supaplex level within the LEVELS.DAT file.")
 
-;; (with-current-buffer (make-indirect-buffer levels-buf "LEVELS.DAT@5" t)
-;;   (edit-level 5))
-
-;; (with-current-buffer levels-buf
-;;   (put-text-property 1 (point-max) 'invisible t))
-
-;; ;; fill line with an object
-;; (with-current-buffer levels-buf
-;;   (let ((n 58))
-;;     (delete-char n)
-;;     (dotimes (i n)
-;;       (insert-char 24))))
-
-;; ;; make blank level
-;; (with-current-buffer levels-buf
-;;   (delete-region (+ 1536 61) (+ 1537 (* 23 60)))
-;;   (dotimes (i 22)
-;;     (insert-char 6)
-;;     (dotimes (j 58) (insert-char 2))
+;; (defun supa-clear-level ()
+;;   (interactive)
+;;   (delete-region 1 (1+ (* 24 60)))
+;;   (dotimes (x 60)
 ;;     (insert-char 6))
-;;   ;
-;;   )
-
-(defun supa-clear-level ()
-  (interactive)
-  (delete-region 1 (1+ (* 24 60)))
-  (dotimes (x 60)
-    (insert-char 6))
-  (dotimes (y 22)
-    (insert-char 6)
-    (dotimes (x 58)
-      (insert-char 2))
-    (insert-char 6))
-  (dotimes (x 60)
-    (insert-char 6)))
-
-;; ;; put all available objects in one line
-;; (with-current-buffer levels-buf
-;;   (delete-char 40)
-;;   (dotimes (i 40) (insert-char i)))
-
-;; (defconst over1
-;;   (with-current-buffer levels-buf
-;;     (make-overlay 61 61)))
-
-;; (overlay-put over1 'before-string "\n")
-;; (delete-overlay over1)
+;;   (dotimes (y 22)
+;;     (insert-char 6)
+;;     (dotimes (x 58)
+;;       (insert-char 2))
+;;     (insert-char 6))
+;;   (dotimes (x 60)
+;;     (insert-char 6)))
