@@ -219,7 +219,7 @@
   (supa-edit-level-at-point))
 
 (define-derived-mode supa-mode
-  fundamental-mode "Supa"
+  special-mode "Supa"
   "Major mode for Supaplex LEVELS.DAT file."
   (read-only-mode)
   (setq truncate-lines 't)
