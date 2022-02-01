@@ -20,7 +20,6 @@
 (defvar supa-tile-size nil)
 
 (defun supa-set-tiles-scale (n)
-  (interactive "nScale (1-4): ")
   (setq supa-tile-size (* 16 n))
   (setq supa-tiles-image
         (find-image (list (list :type 'png :file (format "~/src/supa-el/tiles_x%d.png" n))))))
@@ -28,7 +27,6 @@
 (defconst supa-zero-height-newline (propertize "\n" 'face '(:height 0)))
 
 (defun supa-list-levels ()
-  (interactive)
   (remove-overlays)
   (widen)
   (with-silent-modifications
@@ -40,7 +38,6 @@
         (put-text-property s e 'display (format "%03d: %s\n" (1+ lvl) name))))))
 
 (defun supa-edit-level-at-point ()
-  (interactive)
   (supa-edit-level (1+ (/ (1- (point))
                           1536))))
 
@@ -56,7 +53,6 @@
                                  supa-tile-size))))
 
 (defun supa-edit-level (lvl)
-  (interactive "nLevel: ")
   (remove-overlays)
   (widen)
   (let* ((l (1+ (* 1536 (1- lvl))))
@@ -90,11 +86,9 @@
          (< 0 x 59))))
 
 (defun supa-tile-at-point ()
-  (interactive)
   (char-after))
 
 (defun supa-set-tile-at-point (tile-n)
-  (interactive)
   (when (supa-is-editable-tile)
     (let ((inhibit-read-only 't))
       (delete-char 1)
