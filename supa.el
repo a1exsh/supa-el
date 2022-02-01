@@ -112,16 +112,19 @@
                        (format " %03d / %03d " info-cnt info-req))))
 
 (defun supa-set-required-infotrons (n)
-  (interactive "nCount: ")
-  (let* ((inhibit-read-only 't)
-         (start-pos (supa-level-start-pos))
-         (meta-pos  (+ start-pos supa-level-total-tiles)))
-    (goto-char (+ meta-pos 30))
-    (delete-char 1)
-    (insert n)
-    (with-silent-modifications
-      (supa-update-info-count)
-      (supa-put-text-prop-tile (+ meta-pos 30) 4))))
+  (interactive "nRequired infotrons (0-255): ")
+  (if (not (<= 0 n 255))
+    (message "The count must be between 0 and 255!")
+    (let* ((inhibit-read-only 't)
+           (start-pos (supa-level-start-pos))
+           (meta-pos  (+ start-pos supa-level-total-tiles)))
+      (goto-char (+ meta-pos 30))
+      (delete-char 1)
+      (insert n)
+      (with-silent-modifications
+        (supa-update-info-count)
+        ;; TODO: shouldn't be needed, actually
+        (supa-put-text-prop-tile (+ meta-pos 30) 4)))))
 
 (defun supa-is-editable-tile (&optional pos)
   (let* ((p (% (1- (or pos (point)))
@@ -228,6 +231,7 @@
       (princ "\n")
       (princ "RET\tEnter a level for editing / go back to the levels list\n")
       (princ "u, U\tUndo\n")
+      (princ "I\tSet level's infotrons requirement\n")
       (princ "G\tToggle port gravity flag\n")
       (princ "\n")
       ;; key, tile, sym
@@ -257,6 +261,7 @@
 
 (defconst supa-level-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "I") 'supa-set-required-infotrons)
     (define-key map (kbd "G") 'supa-toggle-port-gravity-at-point)
 
     (define-key map (kbd "u") 'supa-undo)
