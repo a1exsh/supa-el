@@ -171,12 +171,53 @@
 
 (defconst supa-mode-map
   (let ((map (make-sparse-keymap)))
-    ;; major: list levels
-    (define-key map (kbd "RET") 'supa-edit-level-at-point)
+    (define-key map (kbd "RET") 'supa-level-mode)
+    (define-key map (kbd "?")   'supa-show-help)
+    (define-key map [remap revert-buffer] 'supa-revert-buffer)
+    map))
 
-    ;; minor: edit level
-    (define-key map (kbd "?") 'supa-show-help)
-    (define-key map (kbd "q") 'supa-list-levels)
+(defconst supa-help-buffer-name "*Supa Help*")
+
+(defun supa-show-help ()
+  (interactive)
+  (with-help-window supa-help-buffer-name
+    (with-current-buffer supa-help-buffer-name
+      (princ "?\tShow this help window\n")
+      (princ "\n")
+      (princ "RET\tEnter a level for editing / go back to the levels list\n")
+      (princ "u, U\tUndo\n")
+      (princ "G\tToggle port gravity flag\n")
+      (princ "\n")
+      ;; key, tile, sym
+      (seq-doseq (kts supa-kbd-tile-alist)
+        (princ (car kts))
+        (princ "\t.")
+        (supa-put-text-prop-tile (length (buffer-string)) (cadr kts))
+        (princ " ")
+        (princ (caddr kts))
+        (princ "\n")))))
+
+(defun supa-text-scale-adjust-hook ()
+  ;; TODO: use min/max
+  (supa-set-tiles-scale (or (cond
+                             ((<= text-scale-mode-amount 0) 1)
+                             ((>= text-scale-mode-amount 3) 4))
+                            (1+ text-scale-mode-amount)))
+  (when supa-level-mode
+    (supa-edit-level-at-point)))
+
+(define-derived-mode supa-mode
+  special-mode "Supa"
+  "Major mode for Supaplex LEVELS.DAT file."
+  (setq-local truncate-lines 't)
+  (supa-list-levels)
+  (derived-mode-set-keymap 'supa-mode)
+  (supa-set-tiles-scale 1)
+  (add-hook 'text-scale-mode-hook 'supa-text-scale-adjust-hook)
+  (message "? - Help"))
+
+(defconst supa-level-mode-map
+  (let ((map (make-sparse-keymap)))
     (define-key map (kbd "G") 'supa-toggle-port-gravity-at-point)
 
     (define-key map (kbd "u") 'supa-undo)
@@ -194,47 +235,14 @@
 
     map))
 
-(defconst supa-help-buffer-name "*Supa Help*")
-
-(defun supa-show-help ()
-  (interactive)
-  (with-help-window supa-help-buffer-name
-    (with-current-buffer supa-help-buffer-name
-      (princ "?\tShow this help window\n")
-      (princ "\n")
-      (princ "RET\tOpen level for editing from the list\n")
-      (princ "q\tShow the levels list\n")
-      (princ "u, U\tUndo\n")
-      (princ "G\tToggle port gravity flag\n")
-      (princ "\n")
-      ;; key, tile, sym
-      (seq-doseq (kts supa-kbd-tile-alist)
-        (princ (car kts))
-        (princ "\t.")
-        (supa-put-text-prop-tile (length (buffer-string)) (cadr kts))
-        (princ " ")
-        (princ (caddr kts))
-        (princ "\n")))))
-
-(defun supa-text-scale-adjust-hook ()
-  (supa-set-tiles-scale (or (cond
-                             ((<= text-scale-mode-amount 0) 1)
-                             ((>= text-scale-mode-amount 3) 4))
-                            (1+ text-scale-mode-amount)))
-  (supa-edit-level-at-point))
-
-(define-derived-mode supa-mode
-  special-mode "Supa"
-  "Major mode for Supaplex LEVELS.DAT file."
-  (setq-local truncate-lines 't)
-  (supa-list-levels)
-  (derived-mode-set-keymap 'supa-mode)
-  (supa-set-tiles-scale 1)
-  (add-hook 'text-scale-mode-hook 'supa-text-scale-adjust-hook)
-  (message "? - Help"))
-
 (define-minor-mode supa-level-mode
-  "Minor mode for Supaplex level within the LEVELS.DAT file.")
+  "Minor mode for Supaplex level within the LEVELS.DAT file."
+  nil
+  "Level"
+  'supa-level-mode-map
+  :after-hook (if supa-level-mode
+                  (supa-edit-level-at-point)
+                  (supa-list-levels)))
 
 ;; (defun supa-clear-level ()
 ;;   (interactive)
