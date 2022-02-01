@@ -158,6 +158,7 @@
     ("V"   . (10 port))
     ("<"   . (11 port))
     ("^"   . (12 port))
+    ;; we skip the 4 special ports, as there is a separate binding to toggle them
     ("s"   . (17 snick-snack))
     ("y"   . (18 yellow-disk))
     ("T"   . (19 terminal))
