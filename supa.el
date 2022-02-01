@@ -48,7 +48,7 @@
              (name (buffer-substring (+ start-pos supa-level-total-tiles 6)
                                      (+ start-pos supa-level-total-tiles 29))))
         (put-text-property start-pos end-pos
-                           'display (format "%03d: %s\n" (1+ lvl) name))))))
+                           'display (format "%03d %s\n" (1+ lvl) name))))))
 
 (defun supa-put-text-prop-tile (pos tile-n)
   (put-text-property pos
@@ -88,7 +88,7 @@
                                      (aref level-bytes (+ (* supa-level-cols y) x))))))
       (set-text-properties meta-pos meta-end-pos nil)
       (put-text-property   meta-pos (+ meta-pos 6)
-                           'display (format "%03d: " level-n))
+                           'display (format "%03d " level-n))
       (put-text-property   (+ meta-pos 29) (+ meta-pos 30)
                            'display (format " %03d / %03d " info-cnt info-req))
       (supa-put-text-prop-tile (+ meta-pos 30) 4)
@@ -120,13 +120,42 @@
     (let* ((inhibit-read-only 't)
            (start-pos (supa-level-start-pos))
            (meta-pos  (+ start-pos supa-level-total-tiles)))
-      (goto-char (+ meta-pos 30))
-      (delete-char 1)
-      (insert n)
+      ;; ignore for undo
       (with-silent-modifications
+        (goto-char (+ meta-pos 30))
+        (delete-char 1)
+        (insert n)
         (supa-update-info-count)
         ;; TODO: shouldn't be needed, actually
         (supa-put-text-prop-tile (+ meta-pos 30) 4)))))
+
+(defun supa-normal-level-name (name)
+  (let* ((name (upcase (substring name 0 (min 23 (length name)))))
+         (len (length name)))
+    (or (cond
+         ((= len 23) name)
+         ((= len 22) (concat name "-"))
+         ((= len 21) (concat "-" name "-")))
+
+        (let* ((left-pad  (/ (max 0 (- 21 len)) 2))
+               (right-pad    (max 0 (- 21 len left-pad))))
+          (concat (make-string left-pad ?-)
+                  " "
+                  name
+                  " "
+                  (make-string right-pad ?-))))))
+
+(defun supa-level-rename (name)
+  (interactive "sLevel name: ")
+  (let* (
+         (inhibit-read-only 't)
+         (start-pos (supa-level-start-pos))
+         (meta-pos  (+ start-pos supa-level-total-tiles)))
+    ;; ignore for undo
+    (with-silent-modifications
+      (goto-char (+ meta-pos 6))
+      (delete-char 23)
+      (insert (supa-normal-level-name name)))))
 
 (defun supa-is-editable-tile (&optional pos)
   (let* ((p (% (1- (or pos (point)))
@@ -233,6 +262,7 @@
       (princ "\n")
       (princ "RET\tEnter a level for editing / go back to the levels list\n")
       (princ "u, U\tUndo\n")
+      (princ "R\tRename the level\n")
       (princ "I\tSet level's infotrons requirement\n")
       (princ "G\tToggle port gravity flag\n")
       (princ "\n")
@@ -263,6 +293,7 @@
 
 (defconst supa-level-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "R") 'supa-level-rename)
     (define-key map (kbd "I") 'supa-set-required-infotrons)
     (define-key map (kbd "G") 'supa-toggle-port-gravity-at-point)
 
