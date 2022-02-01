@@ -226,8 +226,7 @@
 (define-derived-mode supa-mode
   special-mode "Supa"
   "Major mode for Supaplex LEVELS.DAT file."
-  (read-only-mode)
-  (setq truncate-lines 't)
+  (setq-local truncate-lines 't)
   (supa-list-levels)
   (derived-mode-set-keymap 'supa-mode)
   (supa-set-tiles-scale 1)
