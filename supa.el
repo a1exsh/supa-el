@@ -102,10 +102,16 @@
       (backward-char)
       (supa-put-text-prop-tile (point) tile-n))))
 
+(defun supa-refresh-text-prop-tile-at-point ()
+  (supa-put-text-prop-tile (point) (supa-tile-at-point)))
+
 (defun supa-undo (&optional arg)
   (interactive)
   (let ((inhibit-read-only 't))
-    (undo arg)))
+    (undo arg)
+    ;; undo also restores the original tile size, so enforce the current one:
+    (with-silent-modifications
+      (supa-refresh-text-prop-tile-at-point))))
 
 (defun supa-port-tile-toggled-gravity (tile-n)
   (cond
