@@ -136,14 +136,13 @@
 (define-key supa-mode-map (kbd "RET") 'supa-edit-level-at-point)
 
 ;; minor: edit level
+(define-key supa-mode-map (kbd "?") 'supa-show-help)
 (define-key supa-mode-map (kbd "q") 'supa-list-levels)
-(define-key supa-mode-map (kbd "G")   'supa-toggle-port-gravity-at-point)
-(define-key supa-mode-map (kbd "u")   'supa-undo)
-(define-key supa-mode-map (kbd "U")   'supa-undo)
+(define-key supa-mode-map (kbd "G") 'supa-toggle-port-gravity-at-point)
 
+(define-key supa-mode-map (kbd "u") 'supa-undo)
+(define-key supa-mode-map (kbd "U") 'supa-undo)
 (define-key supa-mode-map [remap undo] 'supa-undo)
-
-(define-key supa-mode-map (kbd "?")   'supa-show-help)
 
 (defconst supa-kbd-tile-alist
   '(("SPC" . ( 0 space))
