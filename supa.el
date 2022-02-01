@@ -37,7 +37,30 @@
               (find-image (list (list :type 'png
                                       :file (format "~/src/supa-el/tiles_x%d.png" n))))))
 
-(defun supa-list-levels ()
+;; TODO: could be reused
+(defun supa-print-levels-list ()
+  (save-restriction
+    (widen)
+    (dotimes (lvl supa-level-max)
+      (let* ((start-pos (1+ (* supa-level-size-in-bytes lvl)))
+             (end-pos   (+ start-pos supa-level-size-in-bytes))
+             (name (buffer-substring (+ start-pos supa-level-total-tiles 6)
+                                     (+ start-pos supa-level-total-tiles 29))))
+        (princ (format "%03d %s\n" (1+ lvl) name))))))
+
+(defun supa-overwrite-level-lst ()
+  (let* ((levels-list-str (with-output-to-string (supa-print-levels-list)))
+
+         (lst-file (concat (file-name-directory (buffer-file-name)) "LEVEL.LST"))
+         (buffer (find-file-literally lst-file)))
+    (with-current-buffer buffer
+      (erase-buffer)
+      (let ((standard-output buffer))
+        (princ levels-list-str))
+      (save-buffer)
+      (kill-buffer))))
+
+(defun supa-show-levels-list ()
   (remove-overlays)
   (widen)
   (with-silent-modifications
@@ -120,11 +143,11 @@
     (let* ((inhibit-read-only 't)
            (start-pos (supa-level-start-pos))
            (meta-pos  (+ start-pos supa-level-total-tiles)))
+      (goto-char (+ meta-pos 30))
+      (delete-char 1)
+      (insert n)
       ;; ignore for undo
       (with-silent-modifications
-        (goto-char (+ meta-pos 30))
-        (delete-char 1)
-        (insert n)
         (supa-update-info-count)
         ;; TODO: shouldn't be needed, actually
         (supa-put-text-prop-tile (+ meta-pos 30) 4)))))
@@ -151,10 +174,10 @@
          (inhibit-read-only 't)
          (start-pos (supa-level-start-pos))
          (meta-pos  (+ start-pos supa-level-total-tiles)))
+    (goto-char (+ meta-pos 6))
+    (delete-char 23)
     ;; ignore for undo
     (with-silent-modifications
-      (goto-char (+ meta-pos 6))
-      (delete-char 23)
       (insert (supa-normal-level-name name)))))
 
 (defun supa-is-editable-tile (&optional pos)
@@ -246,10 +269,16 @@
     ("{"   . (38 chip-up))
     ("}"   . (39 chip-down))))
 
+(defun supa-save-dat-and-lst ()
+  (interactive)
+  (supa-overwrite-level-lst)
+  (save-buffer))
+
 (defconst supa-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") 'supa-level-mode)
     (define-key map (kbd "?")   'supa-show-help)
+    (define-key map [remap save-buffer] 'supa-save-dat-and-lst)
     map))
 
 (defconst supa-help-buffer-name "*Supa Help*")
@@ -285,7 +314,7 @@
   "Major mode for Supaplex LEVELS.DAT file."
   (set-buffer-multibyte nil)
   (setq-local truncate-lines 't)
-  (supa-list-levels)
+  (supa-show-levels-list)
   (derived-mode-set-keymap 'supa-mode)
   (supa-set-tiles-scale 1)
   (add-hook 'text-scale-mode-hook 'supa-text-scale-adjust-hook)
