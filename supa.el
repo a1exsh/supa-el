@@ -27,13 +27,15 @@
 (defconst supa-level-cols 60)
 (defconst supa-level-total-tiles (* supa-level-rows supa-level-cols))
 
+;; TODO: allow to customize
 (defvar supa-tiles-image nil)
 (defvar supa-tile-size nil)
 
 (defun supa-set-tiles-scale (n)
-  (setq supa-tile-size (* 16 n))
-  (setq supa-tiles-image
-        (find-image (list (list :type 'png :file (format "~/src/supa-el/tiles_x%d.png" n))))))
+  (setq-local supa-tile-size (* 16 n))
+  (setq-local supa-tiles-image
+              (find-image (list (list :type 'png
+                                      :file (format "~/src/supa-el/tiles_x%d.png" n))))))
 
 (defun supa-list-levels ()
   (remove-overlays)
