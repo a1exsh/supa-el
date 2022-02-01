@@ -167,7 +167,6 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "RET") 'supa-level-mode)
     (define-key map (kbd "?")   'supa-show-help)
-    (define-key map [remap revert-buffer] 'supa-revert-buffer)
     map))
 
 (defconst supa-help-buffer-name "*Supa Help*")
