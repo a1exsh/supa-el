@@ -130,20 +130,6 @@
              (new-tile-n (supa-port-tile-toggled-gravity old-tile-n)))
       (supa-set-tile-at-point new-tile-n)))
 
-(defconst supa-mode-map (make-sparse-keymap))
-
-;; major: list levels
-(define-key supa-mode-map (kbd "RET") 'supa-edit-level-at-point)
-
-;; minor: edit level
-(define-key supa-mode-map (kbd "?") 'supa-show-help)
-(define-key supa-mode-map (kbd "q") 'supa-list-levels)
-(define-key supa-mode-map (kbd "G") 'supa-toggle-port-gravity-at-point)
-
-(define-key supa-mode-map (kbd "u") 'supa-undo)
-(define-key supa-mode-map (kbd "U") 'supa-undo)
-(define-key supa-mode-map [remap undo] 'supa-undo)
-
 (defconst supa-kbd-tile-alist
   '(("SPC" . ( 0 space))
     ("z"   . ( 1 zonk))
@@ -183,15 +169,30 @@
     ("{"   . (38 chip-up))
     ("}"   . (39 chip-down))))
 
-;; key, tile, sym
-(seq-doseq (kts supa-kbd-tile-alist)
-  (let ((tile-n (cadr kts)))
-    (define-key
-      supa-mode-map
-      (kbd (car kts))
-      (lambda ()
-        (interactive)
-        (supa-set-tile-at-point tile-n)))))
+(defconst supa-mode-map
+  (let ((map (make-sparse-keymap)))
+    ;; major: list levels
+    (define-key map (kbd "RET") 'supa-edit-level-at-point)
+
+    ;; minor: edit level
+    (define-key map (kbd "?") 'supa-show-help)
+    (define-key map (kbd "q") 'supa-list-levels)
+    (define-key map (kbd "G") 'supa-toggle-port-gravity-at-point)
+
+    (define-key map (kbd "u") 'supa-undo)
+    (define-key map (kbd "U") 'supa-undo)
+    (define-key map [remap undo] 'supa-undo)
+
+    ;; key, tile, sym
+    (seq-doseq (kts supa-kbd-tile-alist)
+      (let ((key    (kbd (car kts)))
+            (tile-n (cadr kts)))
+        (define-key map key
+          (lambda ()
+            (interactive)
+            (supa-set-tile-at-point tile-n)))))
+
+    map))
 
 (defconst supa-help-buffer-name "*Supa Help*")
 
