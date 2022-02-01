@@ -198,11 +198,7 @@
         (princ "\n")))))
 
 (defun supa-text-scale-adjust-hook ()
-  ;; TODO: use min/max
-  (supa-set-tiles-scale (or (cond
-                             ((<= text-scale-mode-amount 0) 1)
-                             ((>= text-scale-mode-amount 3) 4))
-                            (1+ text-scale-mode-amount)))
+  (supa-set-tiles-scale (1+ (max 0 (min text-scale-mode-amount 3))))
   (when supa-level-mode
     (supa-edit-level-at-point)))
 
