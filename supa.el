@@ -16,6 +16,12 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ;;
+(defconst supa-level-size-in-bytes 1536) ;; 3 disk sectors apparently
+
+(defun supa-level-number-at-point ()
+  (1+ (/ (1- (point))
+         supa-level-size-in-bytes)))
+
 (defvar supa-tiles-image nil)
 (defvar supa-tile-size nil)
 
@@ -24,22 +30,16 @@
   (setq supa-tiles-image
         (find-image (list (list :type 'png :file (format "~/src/supa-el/tiles_x%d.png" n))))))
 
-(defconst supa-zero-height-newline (propertize "\n" 'face '(:height 0)))
-
 (defun supa-list-levels ()
   (remove-overlays)
   (widen)
   (with-silent-modifications
     (set-text-properties 1 (point-max) nil)
     (dotimes (lvl 111)
-      (let* ((s (1+ (* 1536 lvl)))
-             (e (+ s 1536))
+      (let* ((s (1+ (* supa-level-size-in-bytes lvl)))
+             (e (+ s supa-level-size-in-bytes))
              (name (buffer-substring (+ s 1446) (+ s 1469))))
         (put-text-property s e 'display (format "%03d: %s\n" (1+ lvl) name))))))
-
-(defun supa-edit-level-at-point ()
-  (supa-edit-level (1+ (/ (1- (point))
-                          1536))))
 
 (defun supa-put-text-prop-tile (pos tile-n)
   (put-text-property pos
@@ -52,34 +52,57 @@
                                  supa-tile-size
                                  supa-tile-size))))
 
+(defun supa-count-level-infotrons (level-bytes)
+  (seq-count (lambda (x) (= x 4)) level-bytes))
+
 (defun supa-edit-level (lvl)
   (remove-overlays)
   (widen)
-  (let* ((l (1+ (* 1536 (1- lvl))))
+  (let* ((l (1+ (* supa-level-size-in-bytes (1- lvl))))
          (meta (+ l (* 24 60)))
          (level-contents (buffer-substring l meta))
-         ;; (info-req (aref (buffer-substring (+ meta 30) (+ meta 30)) 0))
-         (info-cnt (seq-count (lambda (x) (= x 4)) level-contents)))
+         (info-req (aref (buffer-substring (+ meta 30) (+ meta 31)) 0))
+         (info-cnt (supa-count-level-infotrons level-contents))
+         (zero-height-newline (propertize "\n" 'face '(:height 0))))
     (with-silent-modifications
       (set-text-properties 1 (point-max) nil)
-      (narrow-to-region l (+ l 1536))
+      (narrow-to-region l (+ l supa-level-size-in-bytes))
       (dotimes (i 24)
         (let* ((line (+ l (* 60 i)))
                (lend (+ line 60))
                (o    (make-overlay lend lend)))
-          (overlay-put o 'before-string supa-zero-height-newline)
+          (overlay-put o 'before-string zero-height-newline)
           (dotimes (j 60)
             (supa-put-text-prop-tile (+ line j)
                                      (aref level-contents (+ (* 60 i) j))))))
       (set-text-properties meta        (+ meta 96) nil)
       (put-text-property   meta        (+ meta  7) 'display (format "%03d " lvl))
-      (put-text-property   (+ meta 29) (+ meta 30) 'display (format " %03d / %03d " 0 info-cnt))
+      (put-text-property   (+ meta 29) (+ meta 30) 'display (format " %03d / %03d " info-cnt info-req))
       (supa-put-text-prop-tile (+ meta 30) 4)
       (put-text-property   (+ meta 31) (+ meta 96) 'invisible t))))
 
+(defun supa-edit-level-at-point ()
+  (supa-edit-level (supa-level-number-at-point)))
+
+(defun supa-level-start-pos (&optional pos)
+  (let ((p (1- (or pos (point)))))
+    (1+ (- p (% p supa-level-size-in-bytes)))))
+
+(defun supa-update-info-count ()
+  (let* ((start-pos    (supa-level-start-pos))
+         (meta-pos     (+ start-pos (* 24 60)))
+         (meta-end-pos (+ meta-pos 96))
+         (level-bytes  (buffer-substring start-pos meta-pos))
+         (meta-bytes   (buffer-substring meta-pos meta-end-pos))
+         (info-cnt     (supa-count-level-infotrons level-bytes))
+         (info-req     (aref meta-bytes 30)))
+    (put-text-property (+ meta-pos 29) (+ meta-pos 30)
+                       'display
+                       (format " %03d / %03d " info-cnt info-req))))
+
 (defun supa-is-editable-tile (&optional pos)
   (let* ((p (% (1- (or pos (point)))
-               1536))
+               supa-level-size-in-bytes))
          (y (/ p 60))
          (x (% p 60)))
     (and (< 0 y 23)
@@ -94,7 +117,9 @@
       (delete-char 1)
       (insert tile-n)
       (backward-char)
-      (supa-put-text-prop-tile (point) tile-n))))
+      (supa-put-text-prop-tile (point) tile-n)
+      (with-silent-modifications
+        (supa-update-info-count)))))
 
 (defun supa-refresh-text-prop-tile-at-point ()
   (supa-put-text-prop-tile (point) (supa-tile-at-point)))
@@ -103,9 +128,10 @@
   (interactive)
   (let ((inhibit-read-only 't))
     (undo arg)
-    ;; undo also restores the original tile size, so enforce the current one:
     (with-silent-modifications
-      (supa-refresh-text-prop-tile-at-point))))
+      ;; undo also restores the original tile size, so enforce the current one:
+      (supa-refresh-text-prop-tile-at-point)
+      (supa-update-info-count))))
 
 (defun supa-port-tile-toggled-gravity (tile-n)
   (cond
