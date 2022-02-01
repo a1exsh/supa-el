@@ -71,7 +71,7 @@
          (level-bytes  (buffer-substring start-pos meta-pos))
          (meta-bytes   (buffer-substring meta-pos meta-end-pos))
          (info-cnt     (supa-count-level-infotrons level-bytes))
-         (info-req     (aref meta-bytes 30)) ;; FIXME: buggy if > 127
+         (info-req     (aref meta-bytes 30))
          (zero-height-newline (propertize "\n" 'face '(:height 0))))
     (with-silent-modifications
       (set-text-properties (point-min) (point-max) nil)
@@ -110,6 +110,18 @@
     (put-text-property (+ meta-pos 29) (+ meta-pos 30)
                        'display
                        (format " %03d / %03d " info-cnt info-req))))
+
+(defun supa-set-required-infotrons (n)
+  (interactive "nCount: ")
+  (let* ((inhibit-read-only 't)
+         (start-pos (supa-level-start-pos))
+         (meta-pos  (+ start-pos supa-level-total-tiles)))
+    (goto-char (+ meta-pos 30))
+    (delete-char 1)
+    (insert n)
+    (with-silent-modifications
+      (supa-update-info-count)
+      (supa-put-text-prop-tile (+ meta-pos 30) 4))))
 
 (defun supa-is-editable-tile (&optional pos)
   (let* ((p (% (1- (or pos (point)))
@@ -235,6 +247,7 @@
 (define-derived-mode supa-mode
   special-mode "Supa"
   "Major mode for Supaplex LEVELS.DAT file."
+  (set-buffer-multibyte nil)
   (setq-local truncate-lines 't)
   (supa-list-levels)
   (derived-mode-set-keymap 'supa-mode)
