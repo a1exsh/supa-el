@@ -271,7 +271,8 @@
 
 (defun supa-save-dat-and-lst ()
   (interactive)
-  (supa-overwrite-level-lst)
+  (when (buffer-modified-p)
+    (supa-overwrite-level-lst))
   (save-buffer))
 
 (defconst supa-mode-map
