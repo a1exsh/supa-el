@@ -354,11 +354,11 @@
 (define-minor-mode supa-level-mode
   "Minor mode for Supaplex level within the LEVELS.DAT file."
   nil
-  "Level"
+  " SupaLevel"
   'supa-level-mode-map
   :after-hook (if supa-level-mode
                   (supa-edit-level-at-point)
-                  (supa-list-levels)))
+                  (supa-show-levels-list)))
 
 ;; (defun supa-level-clear ()
 ;;   (interactive)
