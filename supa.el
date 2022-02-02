@@ -98,6 +98,7 @@
          (meta-bytes   (buffer-substring meta-pos meta-end-pos))
          (info-cnt     (supa-count-level-infotrons level-bytes))
          (info-req     (aref meta-bytes 30))
+         (init-gravity (= 1 (aref meta-bytes 4)))
          (zero-height-newline (propertize "\n" 'face '(:height 0))))
     (with-silent-modifications
       (set-text-properties (point-min) (point-max) nil)
@@ -116,7 +117,9 @@
       (put-text-property   (+ meta-pos 29) (+ meta-pos 30)
                            'display (format " %03d / %03d " info-cnt info-req))
       (supa-put-text-prop-tile (+ meta-pos 30) 4)
-      (put-text-property   (+ meta-pos 31) meta-end-pos 'invisible t))))
+      (put-text-property   (+ meta-pos 31) (+ meta-pos 32)
+                           'display (if init-gravity " Gravity" " "))
+      (put-text-property   (+ meta-pos 32) meta-end-pos 'invisible t))))
 
 (defun supa-edit-level-at-point ()
   (supa-edit-level (supa-level-number-at-point)))
@@ -136,22 +139,6 @@
     (put-text-property (+ meta-pos 29) (+ meta-pos 30)
                        'display
                        (format " %03d / %03d " info-cnt info-req))))
-
-(defun supa-set-required-infotrons (n)
-  (interactive "nRequired infotrons (0-255): ")
-  (if (not (<= 0 n 255))
-    (message "The count must be between 0 and 255!")
-    (let* ((inhibit-read-only 't)
-           (start-pos (supa-level-start-pos))
-           (meta-pos  (+ start-pos supa-level-total-tiles)))
-      (goto-char (+ meta-pos 30))
-      (delete-char 1)
-      (insert n)
-      ;; ignore for undo
-      (with-silent-modifications
-        (supa-update-info-count)
-        ;; TODO: shouldn't be needed, actually
-        (supa-put-text-prop-tile (+ meta-pos 30) 4)))))
 
 (defun supa-normal-level-name (name)
   (let* ((name (upcase (substring name 0 (min 23 (length name)))))
@@ -180,6 +167,41 @@
     ;; ignore for undo
     (with-silent-modifications
       (insert (supa-normal-level-name name)))))
+
+(defun supa-level-set-requirement (n)
+  (interactive "nRequired infotrons (0-255): ")
+  (if (not (<= 0 n 255))
+    (message "The count must be between 0 and 255!")
+    (let* ((inhibit-read-only 't)
+           (start-pos (supa-level-start-pos))
+           (meta-pos  (+ start-pos supa-level-total-tiles)))
+      (goto-char (+ meta-pos 30))
+      (delete-char 1)
+      (insert n)
+      ;; ignore for undo
+      (with-silent-modifications
+        (supa-update-info-count)
+        ;; TODO: shouldn't be needed, actually
+        (supa-put-text-prop-tile (+ meta-pos 30) 4)))))
+
+
+(defun supa-level-toggle-init-gravity ()
+  (interactive "")
+  (let* ((inhibit-read-only 't)
+         (start-pos    (supa-level-start-pos))
+         (meta-pos     (+ start-pos supa-level-total-tiles))
+         (meta-end-pos (+ meta-pos 96))
+         (meta-bytes   (buffer-substring meta-pos meta-end-pos))
+         (init-gravity (= 1 (aref meta-bytes 4))))
+    (goto-char (+ meta-pos 4))
+    (delete-char 1)
+    (insert (if init-gravity 0 1))
+    ;; ignore for undo
+    (with-silent-modifications
+      ;; TODO: probably time to rework the level info line part
+      (put-text-property (+ meta-pos 31) (+ meta-pos 32)
+                         'display (if (not init-gravity) " Gravity" " ")))))
+
 
 (defun supa-is-editable-tile (&optional pos)
   (let* ((p (% (1- (or pos (point)))
@@ -308,7 +330,8 @@
         (princ "u, U\tUndo\n")
         (princ "R\tRename the level\n")
         (princ "I\tSet level's infotrons requirement\n")
-        (princ "G\tToggle gravity flag of a port (when pointing at one)\n")
+        (princ "G\tToggle level's initial gravity flag\n")
+        (princ "g\tToggle gravity flag of a port (when pointing at one)\n")
         (princ "\n")
         (princ "The following keys replace the tile at point:\n")
         ;; key, tile, sym
@@ -374,8 +397,9 @@
 (defconst supa-level-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "R") 'supa-level-rename)
-    (define-key map (kbd "I") 'supa-set-required-infotrons)
-    (define-key map (kbd "G") 'supa-toggle-port-gravity-at-point)
+    (define-key map (kbd "I") 'supa-level-set-requirement)
+    (define-key map (kbd "G") 'supa-level-toggle-init-gravity)
+    (define-key map (kbd "g") 'supa-toggle-port-gravity-at-point)
 
     (define-key map (kbd "u") 'supa-undo)
     (define-key map (kbd "U") 'supa-undo)
