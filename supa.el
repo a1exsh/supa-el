@@ -294,14 +294,21 @@
 
         (setq-local supa-tiles-image current-tiles-image)
         (setq-local supa-tile-size   current-tile-size)
-        (princ "?\tShow this help window\n")
+        (princ "Welcome to Supaplex level editing in Emacs!\n")
         (princ "\n")
+        (princ "Hint: you can increase the tiles size (up to 4x) by using the text scaling commands\n")
+        (princ "(which are usually bound to C-x C-=, C-x C--, etc.)\n")
+        (princ "\n")
+        (princ "?\tShow this help window\n")
         (princ "RET\tEnter a level for editing / go back to the levels list\n")
+        (princ "\n")
+        (princ "When editing a level:\n")
         (princ "u, U\tUndo\n")
         (princ "R\tRename the level\n")
         (princ "I\tSet level's infotrons requirement\n")
         (princ "G\tToggle gravity flag of a port (when pointing at one)\n")
         (princ "\n")
+        (princ "The following keys replace the tile at point:\n")
         ;; key, tile, sym
         (seq-doseq (kts supa-kbd-tile-alist)
           (let ((key    (car kts))
@@ -328,7 +335,7 @@
   (derived-mode-set-keymap 'supa-mode)
   (supa-set-tiles-scale 1)
   (add-hook 'text-scale-mode-hook 'supa-text-scale-adjust-hook)
-  (message "? - Help"))
+  (message "? - Help, RET - Enter a level for editing"))
 
 (defconst supa-level-mode-map
   (let ((map (make-sparse-keymap)))
