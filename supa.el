@@ -20,8 +20,9 @@
 (defconst supa-level-size-in-bytes 1536) ;; 3 disk sectors apparently
 
 (defun supa-level-number-at-point ()
-  (1+ (/ (1- (point))
-         supa-level-size-in-bytes)))
+  (min (1+ (/ (1- (point))
+              supa-level-size-in-bytes))
+       supa-level-max))
 
 (defconst supa-level-rows 24)
 (defconst supa-level-cols 60)
