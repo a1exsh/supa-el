@@ -339,6 +339,48 @@
   (add-hook 'text-scale-mode-hook 'supa-text-scale-adjust-hook)
   (message "? - Help, RET - Enter a level for editing"))
 
+(defun supa-level-next-row ()
+  (interactive)
+  (let* ((p (% (1- (point))
+               supa-level-size-in-bytes))
+         (y (/ p supa-level-cols))
+         (x (% p supa-level-cols)))
+    (goto-char (+ (- (point) p)
+                  (* (min (1+ y) (1- supa-level-rows))
+                     supa-level-cols)
+                  x))))
+
+(defun supa-level-prev-row ()
+  (interactive)
+  (let* ((p (% (1- (point))
+               supa-level-size-in-bytes))
+         (y (/ p supa-level-cols))
+         (x (% p supa-level-cols)))
+    (goto-char (+ (- (point) p)
+                  (* (max 0 (1- y))
+                     supa-level-cols)
+                  x))))
+
+(defun supa-level-next-col ()
+  (interactive)
+  (let* ((p (% (1- (point))
+               supa-level-size-in-bytes))
+         (y (/ p supa-level-cols))
+         (x (% p supa-level-cols)))
+    (goto-char (+ (- (point) p)
+                  (* y supa-level-cols)
+                  (min (1+ x) (1- supa-level-cols))))))
+
+(defun supa-level-prev-col ()
+  (interactive)
+  (let* ((p (% (1- (point))
+               supa-level-size-in-bytes))
+         (y (/ p supa-level-cols))
+         (x (% p supa-level-cols)))
+    (goto-char (+ (- (point) p)
+                  (* y supa-level-cols)
+                  (max 0 (1- x))))))
+
 (defconst supa-level-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "R") 'supa-level-rename)
@@ -348,6 +390,14 @@
     (define-key map (kbd "u") 'supa-undo)
     (define-key map (kbd "U") 'supa-undo)
     (define-key map [remap undo] 'supa-undo)
+
+    (define-key map [remap next-line]     'supa-level-next-row)
+    (define-key map [remap previous-line] 'supa-level-prev-row)
+
+    (define-key map [remap right-char]    'supa-level-next-col)
+    (define-key map [remap forward-char]  'supa-level-next-col)
+    (define-key map [remap left-char]     'supa-level-prev-col)
+    (define-key map [remap backward-char] 'supa-level-prev-col)
 
     ;; key, tile, sym
     (seq-doseq (kts supa-kbd-tile-alist)
