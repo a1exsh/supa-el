@@ -62,8 +62,9 @@
       (kill-buffer))))
 
 (defun supa-show-levels-list ()
-  (remove-overlays)
   (widen)
+  ;; some overlays may be outside the current restriction, so widen first
+  (remove-overlays)
   (with-silent-modifications
     (set-text-properties (point-min) (point-max) nil)
     (dotimes (lvl supa-level-max)
@@ -88,57 +89,61 @@
 (defun supa-count-level-infotrons (level-bytes)
   (seq-count (lambda (x) (= x 4)) level-bytes))
 
-(defun supa-edit-level (level-n)
-  (remove-overlays)
-  (widen)
-  (let* ((start-pos    (1+ (* supa-level-size-in-bytes (1- level-n))))
-         (meta-pos     (+ start-pos supa-level-total-tiles))
-         (meta-end-pos (+ meta-pos 96))
-         (level-bytes  (buffer-substring start-pos meta-pos))
-         (meta-bytes   (buffer-substring meta-pos meta-end-pos))
-         (info-cnt     (supa-count-level-infotrons level-bytes))
-         (info-req     (aref meta-bytes 30))
-         (init-gravity (= 1 (aref meta-bytes 4)))
-         (zero-height-newline (propertize "\n" 'face '(:height 0))))
-    (with-silent-modifications
-      (set-text-properties (point-min) (point-max) nil)
-      (narrow-to-region start-pos (+ start-pos supa-level-size-in-bytes))
-      (dotimes (y supa-level-rows)
-        (let* ((row-pos     (+ start-pos (* supa-level-cols y)))
-               (row-end-pos (+ row-pos supa-level-cols)))
-          (overlay-put (make-overlay row-end-pos row-end-pos)
-                       'before-string zero-height-newline)
-          (dotimes (x supa-level-cols)
-            (supa-put-text-prop-tile (+ row-pos x)
-                                     (aref level-bytes (+ (* supa-level-cols y) x))))))
-      (set-text-properties meta-pos meta-end-pos nil)
-      (put-text-property   meta-pos (+ meta-pos 6)
-                           'display (format "%03d " level-n))
-      (put-text-property   (+ meta-pos 29) (+ meta-pos 30)
-                           'display (format " %03d / %03d " info-cnt info-req))
-      (supa-put-text-prop-tile (+ meta-pos 30) 4)
-      (put-text-property   (+ meta-pos 31) (+ meta-pos 32)
-                           'display (if init-gravity " Gravity" " "))
-      (put-text-property   (+ meta-pos 32) meta-end-pos 'invisible t))))
 
-(defun supa-edit-level-at-point ()
-  (supa-edit-level (supa-level-number-at-point)))
+(defun supa-level-update-info-line ()
+  (let* ((level-n        (supa-level-number-at-point))
+         (start-pos      (1+ (* supa-level-size-in-bytes (1- level-n))))
+         (meta-pos       (+ start-pos supa-level-total-tiles))
+         (level-bytes    (buffer-substring start-pos meta-pos))
+         (meta-end-pos   (+ meta-pos 96))
+         (meta-bytes     (buffer-substring meta-pos meta-end-pos))
+         (info-cnt       (supa-count-level-infotrons level-bytes))
+         (info-req       (aref meta-bytes 30))
+         (init-gravity   (= 1 (aref meta-bytes 4)))
+         (level-info-str (format "\n%03d %s %03d / %03d%s"
+                                 level-n
+                                 (substring meta-bytes 6 29)
+                                 info-cnt
+                                 info-req
+                                 (if init-gravity " Gravity" "")))
+         (info-pos       (1+ meta-pos)))
+
+    (remove-overlays info-pos info-pos)
+    (overlay-put (make-overlay info-pos info-pos) 'before-string level-info-str)))
+
+(defun supa-level-edit-at-point ()
+  (widen)
+  ;; some overlays may be outside the current restriction, so widen first
+  (remove-overlays)
+  (let* ((level-n     (supa-level-number-at-point))
+         (start-pos   (1+ (* supa-level-size-in-bytes (1- level-n))))
+         (meta-pos    (+ start-pos supa-level-total-tiles))
+         (info-pos    (1+ meta-pos))
+         (level-bytes (buffer-substring start-pos meta-pos)))
+
+    (with-silent-modifications
+      (set-text-properties start-pos info-pos '(face (:height 0)))
+
+      (dotimes (y supa-level-rows)
+        (let* ((row-offset (* supa-level-cols y)))
+
+          (dotimes (x supa-level-cols)
+            (let ((tile-offset (+ row-offset x)))
+              (supa-put-text-prop-tile (+ start-pos tile-offset)
+                                       (aref level-bytes tile-offset))))
+
+          (let ((row-end-pos (+ start-pos row-offset supa-level-cols)))
+            (overlay-put (make-overlay row-end-pos row-end-pos)
+                         'before-string "\n"))))
+
+      (supa-level-update-info-line)
+
+      ;; keep narrowing the last, so that we can access meta bytes in the above
+      (narrow-to-region start-pos info-pos))))
 
 (defun supa-level-start-pos (&optional pos)
   (let ((p (1- (or pos (point)))))
     (1+ (- p (% p supa-level-size-in-bytes)))))
-
-(defun supa-update-info-count ()
-  (let* ((start-pos    (supa-level-start-pos))
-         (meta-pos     (+ start-pos supa-level-total-tiles))
-         (meta-end-pos (+ meta-pos 96))
-         (level-bytes  (buffer-substring start-pos meta-pos))
-         (meta-bytes   (buffer-substring meta-pos meta-end-pos))
-         (info-cnt     (supa-count-level-infotrons level-bytes))
-         (info-req     (aref meta-bytes 30)))
-    (put-text-property (+ meta-pos 29) (+ meta-pos 30)
-                       'display
-                       (format " %03d / %03d " info-cnt info-req))))
 
 (defun supa-normal-level-name (name)
   (let* ((name (upcase (substring name 0 (min 23 (length name)))))
@@ -158,49 +163,44 @@
 
 (defun supa-level-rename (name)
   (interactive "sLevel name: ")
-  (let* (
-         (inhibit-read-only 't)
-         (start-pos (supa-level-start-pos))
-         (meta-pos  (+ start-pos supa-level-total-tiles)))
-    (goto-char (+ meta-pos 6))
-    (delete-char 23)
-    ;; ignore for undo
-    (with-silent-modifications
-      (insert (supa-normal-level-name name)))))
+  (save-restriction
+    (widen)
+    (let* ((inhibit-read-only 't)
+           (start-pos (supa-level-start-pos))
+           (meta-pos  (+ start-pos supa-level-total-tiles)))
+      (goto-char (+ meta-pos 6))
+      (delete-char 23)
+      (insert (supa-normal-level-name name))
+      (supa-level-update-info-line))))
 
 (defun supa-level-set-requirement (n)
   (interactive "nRequired infotrons (0-255): ")
   (if (not (<= 0 n 255))
     (message "The count must be between 0 and 255!")
-    (let* ((inhibit-read-only 't)
-           (start-pos (supa-level-start-pos))
-           (meta-pos  (+ start-pos supa-level-total-tiles)))
-      (goto-char (+ meta-pos 30))
-      (delete-char 1)
-      (insert n)
-      ;; ignore for undo
-      (with-silent-modifications
-        (supa-update-info-count)
-        ;; TODO: shouldn't be needed, actually
-        (supa-put-text-prop-tile (+ meta-pos 30) 4)))))
-
+    (save-restriction
+      (widen)
+      (let* ((inhibit-read-only 't)
+             (start-pos (supa-level-start-pos))
+             (meta-pos  (+ start-pos supa-level-total-tiles)))
+        (goto-char (+ meta-pos 30))
+        (delete-char 1)
+        (insert n)
+        (supa-level-update-info-line)))))
 
 (defun supa-level-toggle-init-gravity ()
-  (interactive "")
-  (let* ((inhibit-read-only 't)
-         (start-pos    (supa-level-start-pos))
-         (meta-pos     (+ start-pos supa-level-total-tiles))
-         (meta-end-pos (+ meta-pos 96))
-         (meta-bytes   (buffer-substring meta-pos meta-end-pos))
-         (init-gravity (= 1 (aref meta-bytes 4))))
-    (goto-char (+ meta-pos 4))
-    (delete-char 1)
-    (insert (if init-gravity 0 1))
-    ;; ignore for undo
-    (with-silent-modifications
-      ;; TODO: probably time to rework the level info line part
-      (put-text-property (+ meta-pos 31) (+ meta-pos 32)
-                         'display (if (not init-gravity) " Gravity" " ")))))
+  (interactive)
+  (save-restriction
+    (widen)
+    (let* ((inhibit-read-only 't)
+           (start-pos    (supa-level-start-pos))
+           (meta-pos     (+ start-pos supa-level-total-tiles))
+           (meta-end-pos (+ meta-pos 96))
+           (meta-bytes   (buffer-substring meta-pos meta-end-pos))
+           (init-gravity (= 1 (aref meta-bytes 4))))
+      (goto-char (+ meta-pos 4))
+      (delete-char 1)
+      (insert (if init-gravity 0 1))
+      (supa-level-update-info-line))))
 
 
 (defun supa-is-editable-tile (&optional pos)
@@ -222,7 +222,9 @@
       (backward-char)
       (supa-put-text-prop-tile (point) tile-n)
       (with-silent-modifications
-        (supa-update-info-count)))))
+        (save-restriction
+          (widen)
+          (supa-level-update-info-line))))))
 
 (defun supa-refresh-text-prop-tile-at-point ()
   (supa-put-text-prop-tile (point) (supa-tile-at-point)))
@@ -234,7 +236,9 @@
     (with-silent-modifications
       ;; undo also restores the original tile size, so enforce the current one:
       (supa-refresh-text-prop-tile-at-point)
-      (supa-update-info-count))))
+      (save-restriction
+        (widen)
+        (supa-level-update-info-line)))))
 
 (defun supa-port-tile-toggled-gravity (tile-n)
   (cond
@@ -349,12 +353,13 @@
 (defun supa-text-scale-adjust-hook ()
   (supa-set-tiles-scale (1+ (max 0 (min text-scale-mode-amount 3))))
   (when supa-level-mode
-    (supa-edit-level-at-point)))
+    (supa-level-edit-at-point)))
 
 (define-derived-mode supa-mode
   special-mode "Supa"
   "Major mode for Supaplex LEVELS.DAT file."
-  (set-buffer-multibyte nil)
+  (with-silent-modifications
+    (set-buffer-multibyte nil))
   (setq-local truncate-lines 't)
   (supa-show-levels-list)
   (derived-mode-set-keymap 'supa-mode)
@@ -430,7 +435,7 @@
   " SupaLevel"
   'supa-level-mode-map
   :after-hook (if supa-level-mode
-                  (supa-edit-level-at-point)
+                  (supa-level-edit-at-point)
                   (supa-show-levels-list)))
 
 ;; (defun supa-level-clear ()
