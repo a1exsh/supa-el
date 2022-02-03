@@ -67,12 +67,12 @@
   (with-silent-modifications
     (set-text-properties (point-min) (point-max) nil)
     (dotimes (lvl supa-level-max)
-      (let* ((start-pos (1+ (* supa-level-size-in-bytes lvl)))
-             (end-pos   (+ start-pos supa-level-size-in-bytes))
-             (name (buffer-substring (+ start-pos supa-level-total-tiles 6)
-                                     (+ start-pos supa-level-total-tiles 29))))
-        (put-text-property start-pos end-pos
-                           'display (format "%03d %s\n" (1+ lvl) name))))))
+      (let* ((start-pos    (1+ (* supa-level-size-in-bytes lvl)))
+             (meta-pos     (+ start-pos supa-level-total-tiles))
+             (meta-end-pos (+ meta-pos 96)))
+        (put-text-property start-pos (+ meta-pos 6) 'display (format "%03d " (1+ lvl)))
+        ;; the level name goes unchanged here, which allows searching for it
+        (put-text-property (+ meta-pos 29) meta-end-pos 'display (format "\n"))))))
 
 (defun supa-put-text-prop-tile (pos tile-n)
   (put-text-property pos
