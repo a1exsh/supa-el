@@ -75,6 +75,7 @@
         ;; the level name goes unchanged here, which allows searching for it
         (put-text-property (+ meta-pos 29) meta-end-pos 'display (format "\n"))))))
 
+;; Also used in the help buffer, so no "level" in the func name:
 (defun supa-put-text-prop-tile (pos tile-n)
   (put-text-property pos
                      (1+ pos)
@@ -86,10 +87,6 @@
                                  supa-tile-size
                                  supa-tile-size))))
 
-(defun supa-count-level-infotrons (level-bytes)
-  (seq-count (lambda (x) (= x 4)) level-bytes))
-
-
 (defun supa-level-update-info-line ()
   (let* ((level-n        (supa-level-number-at-point))
          (start-pos      (1+ (* supa-level-size-in-bytes (1- level-n))))
@@ -97,7 +94,7 @@
          (level-bytes    (buffer-substring start-pos meta-pos))
          (meta-end-pos   (+ meta-pos 96))
          (meta-bytes     (buffer-substring meta-pos meta-end-pos))
-         (info-cnt       (supa-count-level-infotrons level-bytes))
+         (info-cnt       (seq-count (lambda (x) (= x 4)) level-bytes))
          (info-req       (aref meta-bytes 30))
          (init-gravity   (= 1 (aref meta-bytes 4)))
          (level-info-str (format "\n%03d %s %03d / %03d%s"
@@ -145,7 +142,7 @@
   (let ((p (1- (or pos (point)))))
     (1+ (- p (% p supa-level-size-in-bytes)))))
 
-(defun supa-normal-level-name (name)
+(defun supa-level-normal-name (name)
   (let* ((name (upcase (substring name 0 (min 23 (length name)))))
          (len (length name)))
     (or (cond
@@ -170,7 +167,7 @@
            (meta-pos  (+ start-pos supa-level-total-tiles)))
       (goto-char (+ meta-pos 6))
       (delete-char 23)
-      (insert (supa-normal-level-name name))
+      (insert (supa-level-normal-name name))
       (supa-level-update-info-line))))
 
 (defun supa-level-set-requirement (n)
@@ -203,7 +200,7 @@
       (supa-level-update-info-line))))
 
 
-(defun supa-is-editable-tile (&optional pos)
+(defun supa-level-is-editable-tile (&optional pos)
   (let* ((p (% (1- (or pos (point)))
                supa-level-size-in-bytes))
          (y (/ p supa-level-cols))
@@ -211,11 +208,11 @@
     (and (< 0 y (1- supa-level-rows))
          (< 0 x (1- supa-level-cols)))))
 
-(defun supa-tile-at-point ()
+(defun supa-level-tile-at-point ()
   (char-after))
 
-(defun supa-set-tile-at-point (tile-n)
-  (when (supa-is-editable-tile)
+(defun supa-level-set-tile-at-point (tile-n)
+  (when (supa-level-is-editable-tile)
     (let ((inhibit-read-only 't))
       (delete-char 1)
       (insert tile-n)
@@ -226,8 +223,8 @@
           (widen)
           (supa-level-update-info-line))))))
 
-(defun supa-refresh-text-prop-tile-at-point ()
-  (supa-put-text-prop-tile (point) (supa-tile-at-point)))
+(defun supa-level-refresh-text-prop-tile-at-point ()
+  (supa-level-put-text-prop-tile (point) (supa-tile-at-point)))
 
 (defun supa-undo (&optional arg)
   (interactive)
@@ -251,11 +248,11 @@
    ((= tile-n 15) 11)
    ((= tile-n 16) 12)))
 
-(defun supa-toggle-port-gravity-at-point ()
+(defun supa-level-toggle-port-gravity-at-point ()
   (interactive)
-  (when-let ((old-tile-n (supa-tile-at-point))
+  (when-let ((old-tile-n (supa-level-tile-at-point))
              (new-tile-n (supa-port-tile-toggled-gravity old-tile-n)))
-      (supa-set-tile-at-point new-tile-n)))
+      (supa-level-set-tile-at-point new-tile-n)))
 
 (defconst supa-kbd-tile-alist
   '(("SPC" . ( 0 space))
@@ -353,6 +350,7 @@
 (defun supa-text-scale-adjust-hook ()
   (supa-set-tiles-scale (1+ (max 0 (min text-scale-mode-amount 3))))
   (when supa-level-mode
+    ;; this just refreshes the level currently being edited
     (supa-level-edit-at-point)))
 
 (define-derived-mode supa-mode
@@ -404,7 +402,7 @@
     (define-key map (kbd "R") 'supa-level-rename)
     (define-key map (kbd "I") 'supa-level-set-requirement)
     (define-key map (kbd "G") 'supa-level-toggle-init-gravity)
-    (define-key map (kbd "g") 'supa-toggle-port-gravity-at-point)
+    (define-key map (kbd "g") 'supa-level-toggle-port-gravity-at-point)
 
     (define-key map (kbd "u") 'supa-undo)
     (define-key map (kbd "U") 'supa-undo)
@@ -425,7 +423,7 @@
         (define-key map key
           (lambda ()
             (interactive)
-            (supa-set-tile-at-point tile-n)))))
+            (supa-level-set-tile-at-point tile-n)))))
 
     map))
 
