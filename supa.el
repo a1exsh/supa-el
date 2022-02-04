@@ -319,11 +319,12 @@
         (princ "RET\tEnter a level for editing / go back to the levels list\n")
         (princ "\n")
         (princ "When editing a level:\n")
-        (princ "u, U\tUndo\n")
+        (princ "m\tGo to Murphy\n")
         (princ "R\tRename the level\n")
         (princ "I\tSet level's infotrons requirement\n")
         (princ "G\tToggle level's initial gravity flag\n")
         (princ "g\tToggle gravity flag of a port (when pointing at one)\n")
+        (princ "u, U\tUndo\n")
         (princ "\n")
         (princ "The following keys replace the tile at point:\n")
         ;; key, tile, sym
@@ -388,8 +389,16 @@
   (supa-level-adjust-point (lambda (x y) (cons (1- x) y))))
 
 
+(defun supa-level-goto-murphy ()
+  (interactive)
+  (goto-char (point-min))
+  (while (not (= 3 (supa-level-tile-at-point)))
+    (forward-char)))
+
+
 (defconst supa-level-mode-map
   (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "m") 'supa-level-goto-murphy)
     (define-key map (kbd "R") 'supa-level-rename)
     (define-key map (kbd "I") 'supa-level-set-requirement)
     (define-key map (kbd "G") 'supa-level-toggle-init-gravity)
@@ -424,7 +433,9 @@
   " SupaLevel"
   'supa-level-mode-map
   :after-hook (if supa-level-mode
-                  (supa-level-edit-at-point)
+                  (progn
+                    (supa-level-edit-at-point)
+                    (supa-level-goto-murphy))
                   (supa-show-levels-list)))
 
 ;; (defun supa-level-clear ()
