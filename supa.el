@@ -105,16 +105,16 @@
                                  (if init-gravity " Gravity" ""))))
     (put-text-property meta-pos meta-end-pos 'display level-info-str)))
 
-(defun supa-level-edit-at-point ()
+(defun supa-level-edit (level-n)
   (widen)
   ;; some overlays may be outside the current restriction, so widen first
   (remove-overlays)
-  (let* ((level-n     (supa-level-number-at-point))
-         (start-pos   (1+ (* supa-level-size-in-bytes (1- level-n))))
+  (let* ((start-pos   (1+ (* supa-level-size-in-bytes (1- level-n))))
          (meta-pos    (+ start-pos supa-level-total-tiles))
          (end-pos     (+ start-pos supa-level-size-in-bytes))
-         ;; narrow first, to prevent accessing bytes from other levels:
+         ;; narrow and reset the point first, to prevent accessing bytes from other levels:
          (_           (narrow-to-region start-pos end-pos))
+         (_           (goto-char (point-min)))
          (level-bytes (buffer-substring start-pos meta-pos)))
 
     (with-silent-modifications
@@ -133,6 +133,9 @@
                          'before-string (propertize "\n" 'face '(:height 0))))))
 
       (supa-level-update-info-line))))
+
+(defun supa-level-edit-at-point ()
+  (supa-level-edit (supa-level-number-at-point)))
 
 (defun supa-level-start-pos (&optional pos)
   (let ((p (1- (or pos (point)))))
@@ -319,12 +322,14 @@
         (princ "RET\tEnter a level for editing / go back to the levels list\n")
         (princ "\n")
         (princ "When editing a level:\n")
-        (princ "m\tGo to Murphy\n")
+        (princ "m\tMove point to Murphy\n")
         (princ "R\tRename the level\n")
         (princ "I\tSet level's infotrons requirement\n")
         (princ "G\tToggle level's initial gravity flag\n")
         (princ "g\tToggle gravity flag of a port (when pointing at one)\n")
         (princ "u, U\tUndo\n")
+        (princ "M-n\tGo to next level\n")
+        (princ "M-p\tGo to previous level\n")
         (princ "\n")
         (princ "The following keys replace the tile at point:\n")
         ;; key, tile, sym
@@ -396,6 +401,19 @@
     (forward-char)))
 
 
+(defun supa-level-edit-next ()
+  (interactive)
+  (supa-level-edit (max 1 (min (1+ (supa-level-number-at-point))
+                               supa-level-max)))
+  (supa-level-goto-murphy))
+
+(defun supa-level-edit-prev ()
+  (interactive)
+  (supa-level-edit (max 1 (min (1- (supa-level-number-at-point))
+                               supa-level-max)))
+  (supa-level-goto-murphy))
+
+
 (defconst supa-level-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "m") 'supa-level-goto-murphy)
@@ -415,6 +433,9 @@
     (define-key map [remap forward-char]  'supa-level-next-col)
     (define-key map [remap left-char]     'supa-level-prev-col)
     (define-key map [remap backward-char] 'supa-level-prev-col)
+
+    (define-key map (kbd "M-n") 'supa-level-edit-next)
+    (define-key map (kbd "M-p") 'supa-level-edit-prev)
 
     ;; key, tile, sym
     (seq-doseq (kts supa-kbd-tile-alist)
