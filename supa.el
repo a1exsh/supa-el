@@ -436,7 +436,9 @@
                   (progn
                     (supa-level-edit-at-point)
                     (supa-level-goto-murphy))
-                  (supa-show-levels-list)))
+                  (progn
+                    (goto-char (point-min)) ; avoids point jumping around
+                    (supa-show-levels-list))))
 
 ;; (defun supa-level-clear ()
 ;;   (interactive)
