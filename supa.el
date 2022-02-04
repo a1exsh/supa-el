@@ -102,11 +102,8 @@
                                  (substring meta-bytes 6 29)
                                  info-cnt
                                  info-req
-                                 (if init-gravity " Gravity" "")))
-         (info-pos       (1+ meta-pos)))
-
-    (remove-overlays info-pos info-pos)
-    (overlay-put (make-overlay info-pos info-pos) 'before-string level-info-str)))
+                                 (if init-gravity " Gravity" ""))))
+    (put-text-property meta-pos meta-end-pos 'display level-info-str)))
 
 (defun supa-level-edit-at-point ()
   (widen)
@@ -115,11 +112,13 @@
   (let* ((level-n     (supa-level-number-at-point))
          (start-pos   (1+ (* supa-level-size-in-bytes (1- level-n))))
          (meta-pos    (+ start-pos supa-level-total-tiles))
-         (info-pos    (1+ meta-pos))
+         (end-pos     (+ start-pos supa-level-size-in-bytes))
+         ;; narrow first, to prevent accessing bytes from other levels:
+         (_           (narrow-to-region start-pos end-pos))
          (level-bytes (buffer-substring start-pos meta-pos)))
 
     (with-silent-modifications
-      (set-text-properties start-pos info-pos '(face (:height 0)))
+      (set-text-properties start-pos end-pos nil)
 
       (dotimes (y supa-level-rows)
         (let* ((row-offset (* supa-level-cols y)))
@@ -131,12 +130,9 @@
 
           (let ((row-end-pos (+ start-pos row-offset supa-level-cols)))
             (overlay-put (make-overlay row-end-pos row-end-pos)
-                         'before-string "\n"))))
+                         'before-string (propertize "\n" 'face '(:height 0))))))
 
-      (supa-level-update-info-line)
-
-      ;; keep narrowing the last, so that we can access meta bytes in the above
-      (narrow-to-region start-pos info-pos))))
+      (supa-level-update-info-line))))
 
 (defun supa-level-start-pos (&optional pos)
   (let ((p (1- (or pos (point)))))
@@ -160,8 +156,7 @@
 
 (defun supa-level-rename (name)
   (interactive "sLevel name: ")
-  (save-restriction
-    (widen)
+  (save-excursion
     (let* ((inhibit-read-only 't)
            (start-pos (supa-level-start-pos))
            (meta-pos  (+ start-pos supa-level-total-tiles)))
@@ -174,8 +169,7 @@
   (interactive "nRequired infotrons (0-255): ")
   (if (not (<= 0 n 255))
     (message "The count must be between 0 and 255!")
-    (save-restriction
-      (widen)
+    (save-excursion
       (let* ((inhibit-read-only 't)
              (start-pos (supa-level-start-pos))
              (meta-pos  (+ start-pos supa-level-total-tiles)))
@@ -186,8 +180,7 @@
 
 (defun supa-level-toggle-init-gravity ()
   (interactive)
-  (save-restriction
-    (widen)
+  (save-excursion
     (let* ((inhibit-read-only 't)
            (start-pos    (supa-level-start-pos))
            (meta-pos     (+ start-pos supa-level-total-tiles))
@@ -219,22 +212,20 @@
       (backward-char)
       (supa-put-text-prop-tile (point) tile-n)
       (with-silent-modifications
-        (save-restriction
-          (widen)
-          (supa-level-update-info-line))))))
+        (supa-level-update-info-line)))))
 
 (defun supa-level-refresh-text-prop-tile-at-point ()
-  (supa-level-put-text-prop-tile (point) (supa-tile-at-point)))
+  (supa-put-text-prop-tile (point) (supa-level-tile-at-point)))
 
 (defun supa-undo (&optional arg)
   (interactive)
   (let ((inhibit-read-only 't))
-    (undo arg)
-    (with-silent-modifications
-      ;; undo also restores the original tile size, so enforce the current one:
-      (supa-refresh-text-prop-tile-at-point)
-      (save-restriction
-        (widen)
+    ;; save the point, or it may jump to the end of narrowing and gets stuck:
+    (save-excursion
+      (undo arg)
+      (with-silent-modifications
+        ;; undo also restores the original tile size, so enforce the current one:
+        (supa-level-refresh-text-prop-tile-at-point)
         (supa-level-update-info-line)))))
 
 (defun supa-port-tile-toggled-gravity (tile-n)
