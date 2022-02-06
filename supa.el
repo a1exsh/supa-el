@@ -116,6 +116,27 @@
       (supa-level-refresh-tiles)
       (supa-level-update-info-line))))
 
+(defun supa-level-ports-db-dump (meta-bytes)
+  (let ((port-count (aref meta-bytes 31)))
+    (dotimes (n port-count)
+      ;; only print the header if there is at least one gravity port:
+      (when (= 0 n)
+        (princ "     x, y   gravity\n")
+        (princ "--------------------\n"))
+      (let* ((offset  (+ 32 (* 6 n)))
+             (hi-xy   (aref meta-bytes (+ offset 0)))
+             (lo-xy   (aref meta-bytes (+ offset 1)))
+             (xy      (supa-level-pos-xy (1+ (/ (+ (* 256 hi-xy) lo-xy) 2))))
+             (gravity (= 1 (aref meta-bytes (+ offset 2))))
+             ;; (zonks   (= 2 (aref meta-bytes (+ offset 3))))
+             ;; (enemies (= 1 (aref meta-bytes (+ offset 4))))
+             )
+        (princ (format "%d: %s %s\n" n (supa-level-format-pos-xy (car xy) (cdr xy))
+                       (if gravity
+                         "[.....ON]"
+                         "[off....]")))))))
+
+;; TODO: no longer "a single line"
 (defun supa-level-update-info-line ()
   (let* ((level-n        (supa-level-number-at-point))
          (start-pos      (1+ (* supa-level-size-in-bytes (1- level-n))))
@@ -126,12 +147,14 @@
          (info-cnt       (seq-count (lambda (x) (= x 4)) level-bytes))
          (info-req       (aref meta-bytes 30))
          (init-gravity   (= 1 (aref meta-bytes 4)))
-         (level-info-str (format "\n%03d %s %03d / %03d%s"
+         (level-info-str (format "\n%03d %s %03d / %03d%s\n\n%s"
                                  level-n
                                  (substring meta-bytes 6 29)
                                  info-cnt
                                  info-req
-                                 (if init-gravity " Gravity" ""))))
+                                 (if init-gravity " Gravity" "")
+                                 (with-output-to-string
+                                   (supa-level-ports-db-dump meta-bytes)))))
     (put-text-property meta-pos meta-end-pos 'display level-info-str)))
 
 (defun supa-level-edit-at-point ()
