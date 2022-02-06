@@ -389,6 +389,14 @@ borders)."
     (cons (% pos supa-level-cols)
           (/ pos supa-level-cols))))
 
+(defun supa-level-format-pos-xy (x y)
+  (format "(%2d,%2d)" x y))
+
+(defun supa-level-format-pos (&optional pos)
+  (let ((xy (supa-level-pos-xy pos)))
+    (supa-level-format-pos-xy (car xy) (cdr xy))))
+
+
 (defun supa-level-adjust-point (fn)
   (let* ((pos (point))
          (xy  (supa-level-pos-xy pos))
@@ -417,6 +425,13 @@ borders)."
   (interactive)
   (supa-level-adjust-point (lambda (x y) (cons (1- x) y))))
 
+(defun supa-level-goto-pos (pos-str)
+  (interactive "sTile position (x,y): ")
+  (save-match-data
+    (let* ((strs (split-string pos-str ","))
+           (x    (string-to-number (or (car  strs) "0")))
+           (y    (string-to-number (or (cadr strs) "0"))))
+      (supa-level-adjust-point (lambda (_x _y) (cons x y))))))
 
 (defun supa-level-goto-murphy ()
   (interactive)
@@ -459,6 +474,9 @@ borders)."
     (define-key map [remap left-char]     'supa-level-prev-col)
     (define-key map [remap backward-char] 'supa-level-prev-col)
 
+    (define-key map [remap goto-line] 'supa-level-goto-pos)
+    (define-key map [remap goto-char] 'supa-level-goto-pos)
+
     (define-key map (kbd "M-n") 'supa-level-edit-next)
     (define-key map (kbd "M-p") 'supa-level-edit-prev)
 
@@ -472,13 +490,6 @@ borders)."
             (supa-level-set-tile-at-point tile-n)))))
 
     map))
-
-(defun supa-level-format-pos-xy (x y)
-  (format "(%2d,%2d)" x y))
-
-(defun supa-level-format-pos (&optional pos)
-  (let ((xy (supa-level-pos-xy pos)))
-    (supa-level-format-pos-xy (car xy) (cdr xy))))
 
 (defun supa-level-enter ()
   (setq-local mode-line-position '(:eval (supa-level-format-pos)))
