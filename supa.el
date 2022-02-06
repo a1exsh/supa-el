@@ -30,13 +30,17 @@
 
 ;; TODO: allow to customize
 (defvar supa-tiles-image nil)
+(defvar supa-border-image nil)
 (defvar supa-tile-size nil)
 
 (defun supa-set-tiles-scale (n)
   (setq-local supa-tile-size (* 16 n))
   (setq-local supa-tiles-image
               (find-image (list (list :type 'png
-                                      :file (format "~/src/supa-el/tiles_x%d.png" n))))))
+                                      :file (format "~/src/supa-el/tiles_x%d.png" n)))))
+  (setq-local supa-border-image
+              (find-image (list (list :type 'png
+                                      :file (format "~/src/supa-el/border_x%d.png" n))))))
 
 ;; TODO: could be reused
 (defun supa-print-levels-list ()
@@ -87,6 +91,94 @@
                                  supa-tile-size
                                  supa-tile-size))))
 
+(defun supa-put-text-prop-border-top-left (pos)
+  (put-text-property pos
+                     (1+ pos)
+                     'display
+                     (list supa-border-image
+                           (list 'slice
+                                 0
+                                 0
+                                 (/ supa-tile-size 2)
+                                 (/ supa-tile-size 2)))))
+
+(defun supa-put-text-prop-border-top (pos)
+  (put-text-property pos
+                     (1+ pos)
+                     'display
+                     (list supa-border-image
+                           (list 'slice
+                                 (/ supa-tile-size 2)
+                                 0
+                                 supa-tile-size
+                                 (/ supa-tile-size 2)))))
+
+(defun supa-put-text-prop-border-top-right (pos)
+  (put-text-property pos
+                     (1+ pos)
+                     'display
+                     (list supa-border-image
+                           (list 'slice
+                                 (+ supa-tile-size (/ supa-tile-size 2))
+                                 0
+                                 (/ supa-tile-size 2)
+                                 (/ supa-tile-size 2)))))
+
+(defun supa-put-text-prop-border-left (pos)
+  (put-text-property pos
+                     (1+ pos)
+                     'display
+                     (list supa-border-image
+                           (list 'slice
+                                 0
+                                 (/ supa-tile-size 2)
+                                 (/ supa-tile-size 2)
+                                 supa-tile-size))))
+
+(defun supa-put-text-prop-border-right (pos)
+  (put-text-property pos
+                     (1+ pos)
+                     'display
+                     (list supa-border-image
+                           (list 'slice
+                                 (+ supa-tile-size (/ supa-tile-size 2))
+                                 (/ supa-tile-size 2)
+                                 (/ supa-tile-size 2)
+                                 supa-tile-size))))
+
+(defun supa-put-text-prop-border-bottom-left (pos)
+  (put-text-property pos
+                     (1+ pos)
+                     'display
+                     (list supa-border-image
+                           (list 'slice
+                                 0
+                                 (+ supa-tile-size (/ supa-tile-size 2))
+                                 (/ supa-tile-size 2)
+                                 (/ supa-tile-size 2)))))
+
+(defun supa-put-text-prop-border-bottom (pos)
+  (put-text-property pos
+                     (1+ pos)
+                     'display
+                     (list supa-border-image
+                           (list 'slice
+                                 (/ supa-tile-size 2)
+                                 (+ supa-tile-size (/ supa-tile-size 2))
+                                 supa-tile-size
+                                 (/ supa-tile-size 2)))))
+
+(defun supa-put-text-prop-border-bottom-right (pos)
+  (put-text-property pos
+                     (1+ pos)
+                     'display
+                     (list supa-border-image
+                           (list 'slice
+                                 (+ supa-tile-size (/ supa-tile-size 2))
+                                 (+ supa-tile-size (/ supa-tile-size 2))
+                                 (/ supa-tile-size 2)
+                                 (/ supa-tile-size 2)))))
+
 (defun supa-level-refresh-tile-at-point ()
   (supa-put-text-prop-tile (point) (supa-level-tile-at-point)))
 
@@ -97,7 +189,22 @@
 
     (dotimes (y supa-level-rows)
       (dotimes (x supa-level-cols)
-        (supa-put-text-prop-tile (point) (supa-level-tile-at-point))
+        (cond
+         ((= y 0)
+          (cond
+           ((= x 0)                    (supa-put-text-prop-border-top-left (point)))
+           ((< x (1- supa-level-cols)) (supa-put-text-prop-border-top (point)))
+           (t                          (supa-put-text-prop-border-top-right (point)))))
+         ((< y (1- supa-level-rows))
+          (cond
+           ((= x 0)                    (supa-put-text-prop-border-left (point)))
+           ((< x (1- supa-level-cols)) (supa-level-refresh-tile-at-point)) ;; tile
+           (t                          (supa-put-text-prop-border-right (point)))))
+         (t
+          (cond
+           ((= x 0)                    (supa-put-text-prop-border-bottom-left (point)))
+           ((< x (1- supa-level-cols)) (supa-put-text-prop-border-bottom (point)))
+           (t                          (supa-put-text-prop-border-bottom-right (point))))))
         (forward-char))
 
       (overlay-put (make-overlay (point) (point))
