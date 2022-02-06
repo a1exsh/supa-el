@@ -196,19 +196,19 @@
       (supa-level-update-info-line))))
 
 
-(defun supa-level-is-editable-tile (&optional pos)
-  (let* ((p (% (1- (or pos (point)))
-               supa-level-size-in-bytes))
-         (y (/ p supa-level-cols))
-         (x (% p supa-level-cols)))
-    (and (< 0 y (1- supa-level-rows))
-         (< 0 x (1- supa-level-cols)))))
+(defun supa-level-editable-tile-p (&optional pos)
+  "Returns t if tile coordinates at position (or point) are
+within the editable area of the level (that is, excluding the
+borders)."
+  (let ((xy (supa-level-pos-xy pos)))
+    (and (< 0 (cdr xy) (1- supa-level-rows))
+         (< 0 (car xy) (1- supa-level-cols)))))
 
 (defun supa-level-tile-at-point ()
   (char-after))
 
 (defun supa-level-set-tile-at-point (tile-n)
-  (when (supa-level-is-editable-tile)
+  (when (supa-level-editable-tile-p)
     (let ((inhibit-read-only 't))
       (delete-char 1)
       (insert tile-n)
@@ -374,7 +374,9 @@
          (y   (max 0 (min (cdr xy) (1- supa-level-rows)))))
     (goto-char (+ (supa-level-start-pos pos)
                   (* y supa-level-cols)
-                  x))))
+                  x)))
+  ;; TODO: ideally, should not be needed
+  (force-mode-line-update))
 
 (defun supa-level-next-row ()
   (interactive)
@@ -397,7 +399,8 @@
   (interactive)
   (goto-char (point-min))
   (while (not (= 3 (supa-level-tile-at-point)))
-    (forward-char)))
+    (forward-char))
+  (force-mode-line-update))
 
 
 (defun supa-level-edit-next ()
@@ -447,18 +450,31 @@
 
     map))
 
+(defun supa-level-format-pos-xy (x y)
+  (format "(%2d,%2d)" x y))
+
+(defun supa-level-format-pos (&optional pos)
+  (let ((xy (supa-level-pos-xy pos)))
+    (supa-level-format-pos-xy (car xy) (cdr xy))))
+
+(defun supa-level-enter ()
+  (setq-local mode-line-position '(:eval (supa-level-format-pos)))
+  (supa-level-edit-at-point)
+  (supa-level-goto-murphy))
+
+(defun supa-level-leave ()
+  (setq-local mode-line-position 'mode-line-percent-position)
+  (goto-char (point-min))               ; avoids point jumping around
+  (supa-show-levels-list))
+
 (define-minor-mode supa-level-mode
   "Minor mode for Supaplex level within the LEVELS.DAT file."
   nil
   " SupaLevel"
   'supa-level-mode-map
   :after-hook (if supa-level-mode
-                  (progn
-                    (supa-level-edit-at-point)
-                    (supa-level-goto-murphy))
-                  (progn
-                    (goto-char (point-min)) ; avoids point jumping around
-                    (supa-show-levels-list))))
+                (supa-level-enter)
+                (supa-level-leave)))
 
 ;; (defun supa-level-clear ()
 ;;   (interactive)
