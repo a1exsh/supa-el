@@ -55,9 +55,16 @@
 
 (defun supa-overwrite-level-lst ()
   (let* ((levels-list-str (with-output-to-string (supa-print-levels-list)))
-
-         (lst-file (concat (file-name-directory (buffer-file-name)) "LEVEL.LST"))
-         (buffer (find-file-literally lst-file)))
+         (dat-file  (buffer-file-name))
+         (extension (file-name-extension dat-file))
+         ;; LEVELS.DAT => LEVEL.LST
+         ;; LEVELS.D01 => LEVEL.L01
+         (lst-file  (concat (file-name-directory dat-file)
+                            "LEVEL.L"
+                            (if (equal "DAT" extension)
+                                "ST"
+                              (substring extension -2))))
+         (buffer    (find-file-literally lst-file)))
     (with-current-buffer buffer
       (erase-buffer)
       (let ((standard-output buffer))
