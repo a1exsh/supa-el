@@ -178,7 +178,7 @@
     (with-silent-modifications
       (set-text-properties start-pos end-pos nil)
       (supa-level-refresh-tiles)
-      (supa-level-update-info-line))))
+      (supa-level-update-info-area))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -254,7 +254,7 @@
           (delete-char 1)
           (insert (if gravity 0 1))))
       (with-silent-modifications
-        (supa-level-update-info-line)))))
+        (supa-level-update-info-area)))))
 
 (defun supa-level-gravity-port-tile-p (tile-n)
   (<= 13 tile-n 16))
@@ -323,8 +323,7 @@
             "\n")))
         (apply 'concat))))
 
-;; TODO: no longer "a single line"
-(defun supa-level-update-info-line ()
+(defun supa-level-update-info-area ()
   (let* ((level-n      (supa-level-number-at-point))
          (start-pos    (1+ (* supa-level-size-in-bytes (1- level-n))))
          (meta-pos     (+ start-pos supa-level-total-tiles))
@@ -378,7 +377,7 @@
       (goto-char (+ meta-pos 6))
       (delete-char 23)
       (insert (supa-level-normal-name name))
-      (supa-level-update-info-line))))
+      (supa-level-update-info-area))))
 
 (defun supa-level-set-requirement (n)
   (interactive "nRequired infotrons (0-255): ")
@@ -391,7 +390,7 @@
         (goto-char (+ meta-pos 30))
         (delete-char 1)
         (insert n)
-        (supa-level-update-info-line)))))
+        (supa-level-update-info-area)))))
 
 (defun supa-level-toggle-init-gravity ()
   (interactive)
@@ -405,7 +404,7 @@
       (goto-char (+ meta-pos 4))
       (delete-char 1)
       (insert (if init-gravity 0 1))
-      (supa-level-update-info-line))))
+      (supa-level-update-info-area))))
 
 
 (defun supa-level-editable-tile-p (&optional pos)
@@ -447,7 +446,7 @@ borders)."
       (when ports-db-vec
         (supa-level-ports-db-update ports-db-vec))
       (with-silent-modifications
-        (supa-level-update-info-line)))))
+        (supa-level-update-info-area)))))
 
 (defun supa-undo (&optional arg)
   (interactive)
@@ -458,7 +457,7 @@ borders)."
       (with-silent-modifications
         ;; undo also restores the original tile size, so enforce the current one:
         (supa-level-refresh-tiles)
-        (supa-level-update-info-line)))))
+        (supa-level-update-info-area)))))
 
 
 (defconst supa-kbd-tile-alist
@@ -721,5 +720,5 @@ borders)."
     (dotimes (x supa-level-cols)
       (insert-char 6)))
   (with-silent-modifications
-    (supa-level-update-info-line)
+    (supa-level-update-info-area)
     (supa-level-refresh-tiles)))
