@@ -91,93 +91,43 @@
                                  supa-tile-size
                                  supa-tile-size))))
 
-(defun supa-put-text-prop-border-top-left (pos)
+(defun supa-tile-size-fraction (f)
+  (round (* supa-tile-size f)))
+
+(defun supa-put-text-prop-border (pos x y w h)
   (put-text-property pos
                      (1+ pos)
                      'display
                      (list supa-border-image
                            (list 'slice
-                                 0
-                                 0
-                                 (/ supa-tile-size 2)
-                                 (/ supa-tile-size 2)))))
+                                 (supa-tile-size-fraction x)
+                                 (supa-tile-size-fraction y)
+                                 (supa-tile-size-fraction w)
+                                 (supa-tile-size-fraction h)))))
+
+(defun supa-put-text-prop-border-top-left (pos)
+  (supa-put-text-prop-border pos 0.0 0.0 0.5 0.5))
 
 (defun supa-put-text-prop-border-top (pos)
-  (put-text-property pos
-                     (1+ pos)
-                     'display
-                     (list supa-border-image
-                           (list 'slice
-                                 (/ supa-tile-size 2)
-                                 0
-                                 supa-tile-size
-                                 (/ supa-tile-size 2)))))
+  (supa-put-text-prop-border pos 0.5 0.0 1.0 0.5))
 
 (defun supa-put-text-prop-border-top-right (pos)
-  (put-text-property pos
-                     (1+ pos)
-                     'display
-                     (list supa-border-image
-                           (list 'slice
-                                 (+ supa-tile-size (/ supa-tile-size 2))
-                                 0
-                                 (/ supa-tile-size 2)
-                                 (/ supa-tile-size 2)))))
+  (supa-put-text-prop-border pos 1.5 0.0 0.5 0.5))
 
 (defun supa-put-text-prop-border-left (pos)
-  (put-text-property pos
-                     (1+ pos)
-                     'display
-                     (list supa-border-image
-                           (list 'slice
-                                 0
-                                 (/ supa-tile-size 2)
-                                 (/ supa-tile-size 2)
-                                 supa-tile-size))))
+  (supa-put-text-prop-border pos 0.0 0.5 0.5 1.0))
 
 (defun supa-put-text-prop-border-right (pos)
-  (put-text-property pos
-                     (1+ pos)
-                     'display
-                     (list supa-border-image
-                           (list 'slice
-                                 (+ supa-tile-size (/ supa-tile-size 2))
-                                 (/ supa-tile-size 2)
-                                 (/ supa-tile-size 2)
-                                 supa-tile-size))))
+  (supa-put-text-prop-border pos 1.5 0.5 0.5 1.0))
 
 (defun supa-put-text-prop-border-bottom-left (pos)
-  (put-text-property pos
-                     (1+ pos)
-                     'display
-                     (list supa-border-image
-                           (list 'slice
-                                 0
-                                 (+ supa-tile-size (/ supa-tile-size 2))
-                                 (/ supa-tile-size 2)
-                                 (/ supa-tile-size 2)))))
+  (supa-put-text-prop-border pos 0.0 1.5 0.5 0.5))
 
 (defun supa-put-text-prop-border-bottom (pos)
-  (put-text-property pos
-                     (1+ pos)
-                     'display
-                     (list supa-border-image
-                           (list 'slice
-                                 (/ supa-tile-size 2)
-                                 (+ supa-tile-size (/ supa-tile-size 2))
-                                 supa-tile-size
-                                 (/ supa-tile-size 2)))))
+  (supa-put-text-prop-border pos 0.5 1.5 1.0 0.5))
 
 (defun supa-put-text-prop-border-bottom-right (pos)
-  (put-text-property pos
-                     (1+ pos)
-                     'display
-                     (list supa-border-image
-                           (list 'slice
-                                 (+ supa-tile-size (/ supa-tile-size 2))
-                                 (+ supa-tile-size (/ supa-tile-size 2))
-                                 (/ supa-tile-size 2)
-                                 (/ supa-tile-size 2)))))
+  (supa-put-text-prop-border pos 1.5 1.5 0.5 0.5))
 
 (defun supa-level-refresh-tile-at-point ()
   (supa-put-text-prop-tile (point) (supa-level-tile-at-point)))
