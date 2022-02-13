@@ -243,14 +243,18 @@
                  (number-sequence 0 (1- port-count))))))
 
 (defun supa-level-ports-db-toggle-gravity (port-n)
-  (let* ((ports-db-pos (+ (supa-level-start-pos) supa-level-total-tiles 31))
+  (interactive "nPort number: ")
+  (let* ((inhibit-read-only t)
+         (ports-db-pos (+ (supa-level-start-pos) supa-level-total-tiles 31))
          (port-count   (char-after ports-db-pos)))
     (when (< port-n port-count)
       (save-excursion
         (goto-char (+ ports-db-pos 1 (* 6 port-n) 2))
         (let ((gravity (= 1 (char-after))))
           (delete-char 1)
-          (insert (if gravity 0 1)))))))
+          (insert (if gravity 0 1))))
+      (with-silent-modifications
+        (supa-level-update-info-line)))))
 
 (defun supa-level-gravity-port-tile-p (tile-n)
   (<= 13 tile-n 16))
@@ -259,12 +263,9 @@
   (interactive)
   (if (and (supa-level-editable-tile-p)
            (supa-level-gravity-port-tile-p (supa-level-tile-at-point)))
-      (let ((inhibit-read-only t)
-            (xy (supa-level-pos-xy)))
+      (let ((xy (supa-level-pos-xy)))
         (supa-level-ports-db-toggle-gravity
-         (supa-level-ports-db-number-at-xy (car xy) (cdr xy)))
-        (with-silent-modifications
-          (supa-level-update-info-line)))
+         (supa-level-ports-db-number-at-xy (car xy) (cdr xy))))
 
     (message "Point is not at a gravity port!")))
 
@@ -289,36 +290,60 @@
       (insert ports-db-str))))
 
 (defun supa-level-ports-db-report (ports-db-vec)
-  (when (not (seq-empty-p ports-db-vec))
-    (princ "     x, y   gravity \n")
-    (princ "--------------------\n")
-    (->> ports-db-vec
-         (seq-do-indexed
-          (lambda (port port-n)
-            (princ (format "%d: %s %s\n"
-                           port-n
-                           (supa-level-format-pos-xy (caar port) (cdar port))
-                           (if (= 1 (cdr port)) "[.....ON]" "[off....]"))))))))
+  (concat
+   "     x, y   gravity \n"
+   "--------------------\n"
+   (->> ports-db-vec
+        (seq-map-indexed
+         (lambda (port port-n)
+           (concat
+            (format "%d: " port-n)
+            (propertize
+             (supa-level-format-pos-xy (caar port) (cdar port))
+             'mouse-face 'highlight
+             'help-echo "mouse-1: move point to this port"
+             'keymap (let ((map (make-sparse-keymap)))
+                       (define-key map [mouse-1]
+                         (lambda ()
+                           (interactive)
+                           (supa-level-adjust-point (lambda (_x _y)
+                                                      (car port)))))
+                       map))
+            " "
+            (propertize
+             (if (= 1 (cdr port)) "[.....ON]" "[off....]")
+             'mouse-face 'highlight
+             'help-echo "mouse-1: toggle this port's gravity flag"
+             'keymap (let ((map (make-sparse-keymap)))
+                       (define-key map [mouse-1]
+                         (lambda ()
+                           (interactive)
+                           (supa-level-ports-db-toggle-gravity port-n)))
+                       map))
+            "\n")))
+        (apply 'concat))))
 
 ;; TODO: no longer "a single line"
 (defun supa-level-update-info-line ()
-  (let* ((level-n        (supa-level-number-at-point))
-         (start-pos      (1+ (* supa-level-size-in-bytes (1- level-n))))
-         (meta-pos       (+ start-pos supa-level-total-tiles))
-         (level-bytes    (buffer-substring start-pos meta-pos))
-         (meta-end-pos   (+ meta-pos 96))
-         (meta-bytes     (buffer-substring meta-pos meta-end-pos))
-         (info-cnt       (seq-count (lambda (x) (= x 4)) level-bytes))
-         (info-req       (aref meta-bytes 30))
-         (init-gravity   (= 1 (aref meta-bytes 4)))
+  (let* ((level-n      (supa-level-number-at-point))
+         (start-pos    (1+ (* supa-level-size-in-bytes (1- level-n))))
+         (meta-pos     (+ start-pos supa-level-total-tiles))
+         (level-bytes  (buffer-substring start-pos meta-pos))
+         (meta-end-pos (+ meta-pos 96))
+         (meta-bytes   (buffer-substring meta-pos meta-end-pos))
+         (info-cnt     (seq-count (lambda (x) (= x 4)) level-bytes))
+         (info-req     (aref meta-bytes 30))
+         (init-gravity (= 1 (aref meta-bytes 4)))
+         (ports-db-vec (supa-level-ports-db-vector))
          (level-info-str (format "\n%03d %s %03d / %03d%s\n\n%s"
                                  level-n
                                  (substring meta-bytes 6 29)
                                  info-cnt
                                  info-req
                                  (if init-gravity " Gravity" "")
-                                 (with-output-to-string
-                                   (supa-level-ports-db-report (supa-level-ports-db-vector))))))
+                                 (if (not (seq-empty-p ports-db-vec))
+                                     (supa-level-ports-db-report ports-db-vec)
+                                   ""))))
     (put-text-property meta-pos meta-end-pos 'display level-info-str)))
 
 (defun supa-level-edit-at-point ()
