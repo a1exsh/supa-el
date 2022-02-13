@@ -223,25 +223,125 @@
       (supa-level-refresh-tiles)
       (supa-level-update-info-line))))
 
-(defun supa-level-ports-db-dump (meta-bytes)
-  (let ((port-count (aref meta-bytes 31)))
-    (dotimes (n port-count)
-      ;; only print the header if there is at least one gravity port:
-      (when (= 0 n)
-        (princ "     x, y   gravity\n")
-        (princ "--------------------\n"))
-      (let* ((offset  (+ 32 (* 6 n)))
-             (hi-xy   (aref meta-bytes (+ offset 0)))
-             (lo-xy   (aref meta-bytes (+ offset 1)))
-             (xy      (supa-level-pos-xy (1+ (/ (+ (* 256 hi-xy) lo-xy) 2))))
-             (gravity (= 1 (aref meta-bytes (+ offset 2))))
-             ;; (zonks   (= 2 (aref meta-bytes (+ offset 3))))
-             ;; (enemies (= 1 (aref meta-bytes (+ offset 4))))
-             )
-        (princ (format "%d: %s %s\n" n (supa-level-format-pos-xy (car xy) (cdr xy))
-                       (if gravity
-                         "[.....ON]"
-                         "[off....]")))))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Gravity ports database
+;;
+;; Part of the level metadata.  1 byte + up to 10 * 6 bytes records
+;;
+;; offset	size	meaning
+;; 31		1	number of records (0-10)
+;;
+;; each record:
+;;  0		1	high byte of xy
+;;  1		1	low  byte of xy
+;;  2		1	gravity flag (0=off)
+;;  3		3	not used in the original level set
+;;
+;; Port coordinates are encoded in two bytes as follows: 2 * ((60 * y) + x)
+;;
+;; For more details see:
+;;
+;; https://github.com/sergiou87/open-supaplex/blob/v7.1.2/resources/SPFIX63.DOC#L2072-L2092
+;;
+(defconst supa-level-ports-db-max-count 10)
+
+(defun supa-level-ports-db-pos ()
+  (+ (supa-level-start-pos) supa-level-total-tiles 31))
+
+(defun supa-level-ports-db-enc-xy2b (x y)
+  (* 2 (+ x (* y supa-level-cols))))
+
+(defun supa-level-ports-db-dec-xy2b (hi lo)
+  (supa-level-pos-xy (1+ (/ (+ (* 256 hi) lo) 2))))
+
+(defun supa-level-ports-db-vector ()
+  (let* ((ports-db-pos (supa-level-ports-db-pos))
+         (port-count   (char-after ports-db-pos)))
+    (->> (number-sequence 0 (1- port-count))
+         (seq-map (lambda (port-n)
+                    (let* ((port-pos (+ ports-db-pos 1 (* 6 port-n)))
+                           (hi-xy    (char-after    port-pos))
+                           (lo-xy    (char-after (+ port-pos 1)))
+                           (gravity  (char-after (+ port-pos 2))))
+                      (cons (supa-level-ports-db-dec-xy2b hi-xy lo-xy)
+                            gravity))))
+         (apply 'vector))))
+
+(defun supa-level-ports-db-xy2b (port-n)
+  (let* ((ports-db-pos (supa-level-ports-db-pos))
+         (port-count   (char-after ports-db-pos)))
+    (when (< port-n port-count)
+      (let* ((port-pos (+ ports-db-pos 1 (* 6 port-n) 0))
+             (hi (char-after port-pos))
+             (lo (char-after (1+ port-pos))))
+        (+ (* 256 hi) lo)))))
+
+(defun supa-level-ports-db-number-at-xy (x y)
+  (let* ((xy2b         (supa-level-ports-db-enc-xy2b x y))
+         (ports-db-pos (supa-level-ports-db-pos))
+         (port-count   (char-after ports-db-pos)))
+    (seq-first
+     (seq-filter (lambda (port-n) (= xy2b (supa-level-ports-db-xy2b port-n)))
+                 (number-sequence 0 (1- port-count))))))
+
+(defun supa-level-ports-db-toggle-gravity (port-n)
+  (let* ((ports-db-pos (+ (supa-level-start-pos) supa-level-total-tiles 31))
+         (port-count   (char-after ports-db-pos)))
+    (when (< port-n port-count)
+      (save-excursion
+        (goto-char (+ ports-db-pos 1 (* 6 port-n) 2))
+        (let ((gravity (= 1 (char-after))))
+          (delete-char 1)
+          (insert (if gravity 0 1)))))))
+
+(defun supa-level-gravity-port-tile-p (tile-n)
+  (<= 13 tile-n 16))
+
+(defun supa-level-toggle-port-gravity-at-point ()
+  (interactive)
+  (if (and (supa-level-editable-tile-p)
+           (supa-level-gravity-port-tile-p (supa-level-tile-at-point)))
+      (let ((inhibit-read-only t)
+            (xy (supa-level-pos-xy)))
+        (supa-level-ports-db-toggle-gravity
+         (supa-level-ports-db-number-at-xy (car xy) (cdr xy)))
+        (with-silent-modifications
+          (supa-level-update-info-line)))
+
+    (message "Point is not at a gravity port!")))
+
+(defun supa-level-ports-db-dump (ports-db-vec)
+  (concat
+   (string (length ports-db-vec))
+   (->> ports-db-vec
+        (seq-mapcat
+         (lambda (port)
+           (let* ((hi-lo (supa-level-ports-db-enc-xy2b (caar port) (cdar port)))
+                  (hi    (/ hi-lo 256))
+                  (lo    (% hi-lo 256)))
+             (list hi lo (cdr port) 0 0 0))))
+        (seq-concatenate 'string))))
+
+(defun supa-level-ports-db-update (ports-db-vec)
+  (save-excursion
+    (let ((ports-db-pos (supa-level-ports-db-pos))
+          (ports-db-str (supa-level-ports-db-dump ports-db-vec)))
+      (goto-char ports-db-pos)
+      (delete-char (length ports-db-str))
+      (insert ports-db-str))))
+
+(defun supa-level-ports-db-report (ports-db-vec)
+  (when (not (seq-empty-p ports-db-vec))
+    (princ "     x, y   gravity \n")
+    (princ "--------------------\n")
+    (->> ports-db-vec
+         (seq-do-indexed
+          (lambda (port port-n)
+            (princ (format "%d: %s %s\n"
+                           port-n
+                           (supa-level-format-pos-xy (caar port) (cdar port))
+                           (if (= 1 (cdr port)) "[.....ON]" "[off....]"))))))))
 
 ;; TODO: no longer "a single line"
 (defun supa-level-update-info-line ()
@@ -261,7 +361,7 @@
                                  info-req
                                  (if init-gravity " Gravity" "")
                                  (with-output-to-string
-                                   (supa-level-ports-db-dump meta-bytes)))))
+                                   (supa-level-ports-db-report (supa-level-ports-db-vector))))))
     (put-text-property meta-pos meta-end-pos 'display level-info-str)))
 
 (defun supa-level-edit-at-point ()
@@ -339,11 +439,31 @@ borders)."
 
 (defun supa-level-set-tile-at-point (tile-n)
   (when (supa-level-editable-tile-p)
-    (let ((inhibit-read-only 't))
+    (let* ((inhibit-read-only 't)
+           (tile-xy    (supa-level-pos-xy))
+           (old-tile-n (char-after))
+           (new-gravity-port (supa-level-gravity-port-tile-p tile-n))
+           (old-gravity-port (supa-level-gravity-port-tile-p old-tile-n))
+           (ports-db-vec (supa-level-ports-db-vector))
+           (ports-db-vec
+            (if new-gravity-port
+                (when (not old-gravity-port)
+                  ;; need to add an entry
+                  (if (= supa-level-ports-db-max-count (length ports-db-vec))
+                      (error "All %d port slots are taken"
+                             supa-level-ports-db-max-count)
+                    (append ports-db-vec (list (cons tile-xy 1)))))
+              (when old-gravity-port
+                ;; remove old port entry
+                (->> ports-db-vec
+                     (seq-remove (lambda (port) (equal tile-xy (car port))))
+                     (apply 'vector))))))
       (delete-char 1)
       (insert tile-n)
       (backward-char)
       (supa-put-text-prop-tile (point) tile-n)
+      (when ports-db-vec
+        (supa-level-ports-db-update ports-db-vec))
       (with-silent-modifications
         (supa-level-update-info-line)))))
 
@@ -358,22 +478,6 @@ borders)."
         (supa-level-refresh-tiles)
         (supa-level-update-info-line)))))
 
-(defun supa-port-tile-toggled-gravity (tile-n)
-  (cond
-   ((= tile-n  9) 13)
-   ((= tile-n 10) 14)
-   ((= tile-n 11) 15)
-   ((= tile-n 12) 16)
-   ((= tile-n 13)  9)
-   ((= tile-n 14) 10)
-   ((= tile-n 15) 11)
-   ((= tile-n 16) 12)))
-
-(defun supa-level-toggle-port-gravity-at-point ()
-  (interactive)
-  (when-let ((old-tile-n (supa-level-tile-at-point))
-             (new-tile-n (supa-port-tile-toggled-gravity old-tile-n)))
-      (supa-level-set-tile-at-point new-tile-n)))
 
 (defconst supa-kbd-tile-alist
   '(("SPC" . ( 0 space))
@@ -389,7 +493,10 @@ borders)."
     ("V"   . (10 port-up-to-down))
     ("<"   . (11 port-right-to-left))
     ("^"   . (12 port-down-to-up))
-    ;; we skip the 4 special ports, as there is a separate binding to toggle them
+    ("M->" . (13 gravity-port-left-to-right))
+    ("M-V" . (14 gravity-port-up-to-down))
+    ("M-<" . (15 gravity-port-right-to-left))
+    ("M-^" . (16 gravity-port-down-to-up))
     ("s"   . (17 snick-snack))
     ("y"   . (18 yellow-disk))
     ("T"   . (19 terminal))
