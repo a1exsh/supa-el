@@ -16,6 +16,10 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ;;
+
+;; only used for the threading macros: ->, ->>
+(require 'dash)
+
 (defconst supa-level-max 111)
 (defconst supa-level-size-in-bytes 1536) ;; 3 disk sectors apparently
 
