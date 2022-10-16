@@ -322,7 +322,9 @@
                        (define-key map [mouse-1]
                          (lambda ()
                            (interactive)
-                           (supa-level-ports-db-toggle-gravity port-n)))
+                           (supa-level-ports-db-toggle-gravity port-n)
+                           (supa-level-adjust-point (lambda (_x _y)
+                                                      (car port)))))
                        map))
             "\n")))
         (apply 'concat))))
