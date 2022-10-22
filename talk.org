@@ -1,0 +1,96 @@
+# Local IspellDict: en
+#+Title: Supa-el
+#+Author: Alex Shulgin
+
+#+KEYWORDS: supaplex, emacs
+#+DESCRIPTION: A talk about supa-el, an Emacs mode for editing Supaplex level files.
+
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Authors: Alex Shulgin <alex.shulgin@gmail.com>
+
+# Copyright © 2022 Alex Shulgin
+# SPDX-FileCopyrightText: 2022 Alex Shulgin
+
+#+OPTIONS: reveal_center:t reveal_progress:t reveal_history:nil reveal_control:t
+#+OPTIONS: reveal_rolling_links:t reveal_keyboard:t reveal_overview:t num:nil
+#+OPTIONS: reveal_width:1400 reveal_height:1000
+#+OPTIONS: toc:1
+#+OPTIONS: reveal_klipsify_src:t
+#+REVEAL_MIN_SCALE: 1.0
+#+REVEAL_MAX_SCALE: 1.0
+#+REVEAL_PLUGINS: (notes search zoom)
+#+REVEAL_MARGIN: 0.1
+#+REVEAL_TRANS: convex
+#+REVEAL_THEME: white
+#+REVEAL_HLEVEL: 2
+#+REVEAL_EXTRA_CSS: ./local.css
+
+* supa-el
+
+A major editing mode for... Supaplex level files!
+
+** Supaplex
+
+https://en.wikipedia.org/wiki/Supaplex
+
+DEMO
+
+#+BEGIN_NOTES
+- First encounter as a kid, now having kids of my own, the same age.
+- Editor in Turbo Pascal.
+- Missing features: undo, backup, etc.
+- What if we take an existing editor and extend it a bit?..
+#+END_NOTES
+
+** Proof of concept
+
+[[./fundamental.png]]
+
+#+REVEAL: split
+
+[[./scratch.png]]
+
+#+BEGIN_NOTES
+- Under 10 SLoC
+- Resized window to fit exactly 60 tiles per row
+- You cannot actually edit, only look around
+  - There's a problem with display properties
+#+END_NOTES
+
+#+REVEAL: split
+[[./tiles_x2.png]]
+
+** supa-el
+
+https://github.com/a1exsh/supa-el
+
+DEMO
+
+#+BEGIN_NOTES
+- Next/prev level
+- Edit/undo
+- Save anytime (the data is valid all the time)
+- Search in the levels list
+- EASY RIDER!
+  - Gravity On/Off
+  - Ports database
+#+END_NOTES
+
+*** Code walk-through
+
+In Emacs.
+
+#+BEGIN_NOTES
+- supa-set-tiles-scale: tiles and border
+- LEVELS.LST (faster reading from a floppy)
+- supa-level-refresh-tiles (the meat)
+- ports db
+- supa-level-set-tile-at-point (the editing)
+#+END_NOTES
+
+** Conclusions
+
+- Using a high-level tool may be beneficial
+- Emacs features are a surprisingly good match
+- Emacs documentation is helpful enough
+- Don't feel intimidated :)
