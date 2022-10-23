@@ -14,7 +14,7 @@
 #+OPTIONS: reveal_center:t reveal_progress:t reveal_history:nil reveal_control:t
 #+OPTIONS: reveal_rolling_links:t reveal_keyboard:t reveal_overview:t num:nil
 #+OPTIONS: reveal_width:1400 reveal_height:1000
-#+OPTIONS: toc:1
+#+OPTIONS: toc:0
 #+OPTIONS: reveal_klipsify_src:t
 #+REVEAL_MIN_SCALE: 1.0
 #+REVEAL_MAX_SCALE: 1.0
@@ -29,7 +29,9 @@
 
 A major editing mode for... Supaplex level files!
 
-** Supaplex
+* Supaplex
+
+[[./supaplex.png]]
 
 https://en.wikipedia.org/wiki/Supaplex
 
@@ -42,7 +44,7 @@ DEMO
 - What if we take an existing editor and extend it a bit?..
 #+END_NOTES
 
-** Proof of concept
+* Proof of concept
 
 [[./fundamental.png]]
 
@@ -60,7 +62,7 @@ DEMO
 #+REVEAL: split
 [[./tiles_x2.png]]
 
-** supa-el
+* supa-el
 
 https://github.com/a1exsh/supa-el
 
@@ -76,7 +78,7 @@ DEMO
   - Ports database
 #+END_NOTES
 
-*** Code walk-through
+** Code walk-through
 
 In Emacs.
 
@@ -88,9 +90,18 @@ In Emacs.
 - supa-level-set-tile-at-point (the editing)
 #+END_NOTES
 
-** Conclusions
+* Conclusions
 
 - Using a high-level tool may be beneficial
 - Emacs features are a surprisingly good match
 - Emacs documentation is helpful enough
+
+#+REVEAL: split
+
 - Don't feel intimidated :)
+- It helps to have a (fun or practical) task you really want solve
+- Extremely short feedback loop
+- Meta-editing
+* Thank you!
+
+[[./supa.png]]
