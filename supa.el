@@ -17,6 +17,9 @@
 ;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ;;
 
+;; LEVELS.DAT, LEVELS.D01, LEVELS.D02, etc.
+(add-to-list 'auto-mode-alist '("LEVELS.D\\(AT\\|[0-9][0-9]\\)\\'" . supa-mode))
+
 ;; only used for the threading macros: ->, ->>
 (require 'dash)
 
