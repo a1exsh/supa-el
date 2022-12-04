@@ -18,6 +18,7 @@
 ;;
 
 ;; LEVELS.DAT, LEVELS.D01, LEVELS.D02, etc.
+;;;###autoload
 (add-to-list 'auto-mode-alist '("LEVELS.D\\(AT\\|[0-9][0-9]\\)\\'" . supa-mode))
 
 ;; only used for the threading macros: ->, ->>
@@ -705,6 +706,7 @@ borders)."
   (goto-char (point-min))               ; avoids point jumping around
   (supa-show-levels-list))
 
+;;;###autoload
 (define-minor-mode supa-level-mode
   "Minor mode for Supaplex level within the LEVELS.DAT file."
   nil
