@@ -9,6 +9,10 @@ the source, if running from a different directory.
 
 Evaluate the whole file [`supa.el`](supa.el).
 
+## Demo
+
+Watch me present it at the Emacs Berlin meetup: [talk](https://diode.zone/w/bPFHaKky2XAfrfFerrkEQM)
+
 ## Usage
 
 1. Open your `LEVELS.DAT`.
